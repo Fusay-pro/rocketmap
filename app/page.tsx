@@ -1,13 +1,14 @@
 "use client";
 
 import { Suspense, useState, useEffect, useRef, type ReactNode } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signInWithGoogle } from "@/lib/oauth";
 import { ErrorBanner } from "./components/ErrorBanner";
 import { StaticBMC } from "./components/StaticBMC";
 
 /* ================================================================
-   DELIGHT: Mouse-following ambient glow (candlelight metaphor)
+   Mouse-following ambient glow (candlelight metaphor)
    ================================================================ */
 function MouseGlow() {
   const glowRef = useRef<HTMLDivElement>(null);
@@ -57,59 +58,6 @@ function MouseGlow() {
   );
 }
 
-/* ================================================================
-   DELIGHT: Scroll-triggered reveal wrapper
-   ================================================================ */
-function ScrollReveal({
-  children,
-  className = "",
-  delay = 0,
-  direction = "up",
-}: {
-  children: ReactNode;
-  className?: string;
-  delay?: number;
-  direction?: "up" | "left" | "right" | "scale";
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.unobserve(el);
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const dirClass =
-    direction === "up"
-      ? "sr-up"
-      : direction === "left"
-        ? "sr-left"
-        : direction === "right"
-          ? "sr-right"
-          : "sr-scale";
-
-  return (
-    <div
-      ref={ref}
-      className={`${dirClass} ${visible ? "sr-visible" : ""} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
-  );
-}
-
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -134,7 +82,7 @@ function GoogleIcon() {
 }
 
 /* ================================================================
-   DELIGHT: TopNav with draw-underline hover & logo reaction
+   TopNav: honest, minimal, scroll-aware
    ================================================================ */
 function TopNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -149,16 +97,15 @@ function TopNav() {
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-background/70 backdrop-blur-md border-b border-border"
+          ? "bg-background/80 backdrop-blur-md border-b border-border"
           : "bg-transparent"
       }`}
     >
-      <div className="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3 group cursor-pointer">
-          {/* Logo mark: wax seal stamp — irregular edge, hand-pressed */}
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3 group">
+          {/* Logo mark: wax seal stamp */}
           <div className="relative w-8 h-8 shrink-0 text-primary">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="text-primary">
-              {/* Seal body — imperfect circle like hand-pressed wax */}
               <path
                 d="M16 2.2c1.8-.1 3.6.4 5.1 1.2 1.4.7 2.6 1.8 3.6 3.1.9 1.2 1.5 2.6 1.8 4.1.3 1.5.2 3-.2 4.4-.4 1.5-1.1 2.8-2.1 3.9-1 1.2-2.3 2.1-3.7 2.7-1.6.7-3.3 1-5 1-1.7 0-3.4-.4-4.9-1.2-1.3-.7-2.5-1.7-3.4-2.9-.9-1.2-1.5-2.6-1.8-4.1-.3-1.5-.2-3 .2-4.4.4-1.4 1.1-2.7 2-3.8 1-1.2 2.2-2.1 3.6-2.8 1.3-.6 2.7-1 4.2-1.1.2 0 .4 0 .6-.1z"
                 fill="currentColor"
@@ -167,7 +114,6 @@ function TopNav() {
                 strokeOpacity="0.4"
                 strokeWidth="1"
               />
-              {/* Impression ring — stamped into wax */}
               <path
                 d="M16 5.8c1.4-.1 2.8.3 4 1 1.1.6 2 1.5 2.7 2.6.6 1 .9 2.1.9 3.3 0 1.2-.3 2.3-.9 3.3-.7 1-1.6 1.8-2.7 2.4-1.2.6-2.6 1-4 1-1.4 0-2.8-.3-4-1-1.1-.6-2-1.4-2.6-2.4-.6-1-.9-2.1-.9-3.3 0-1.2.3-2.3.8-3.3.6-1.1 1.5-2 2.6-2.6 1.2-.7 2.6-1.1 4.1-1z"
                 stroke="currentColor"
@@ -175,7 +121,6 @@ function TopNav() {
                 strokeWidth="0.75"
                 fill="none"
               />
-              {/* Serif R initial — like an illuminated manuscript */}
               <text
                 x="16"
                 y="21.5"
@@ -196,111 +141,128 @@ function TopNav() {
           <span className="font-display text-lg tracking-tight text-foreground">
             RocketMap
           </span>
-        </div>
+        </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-foreground-muted">
-          {["Product", "Features", "Pricing"].map((label) => (
-            <a
-              key={label}
-              href="#demo"
-              className="nav-link-delve relative hover:text-foreground transition-colors duration-300"
-            >
-              {label}
-            </a>
-          ))}
+          <a
+            href="#how-it-works"
+            className="nav-link-delve relative hover:text-foreground transition-colors duration-300"
+          >
+            How it works
+          </a>
+          <a
+            href="#demo"
+            className="nav-link-delve relative hover:text-foreground transition-colors duration-300"
+          >
+            Demo
+          </a>
+          <a
+            href="#workflow"
+            className="nav-link-delve relative hover:text-foreground transition-colors duration-300"
+          >
+            Workflow
+          </a>
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => signInWithGoogle()}
             className="text-sm font-medium text-foreground-muted hover:text-foreground transition-colors hidden sm:block"
           >
             Log in
           </button>
-          <div className="cta-glow">
-            <button
-              onClick={() => signInWithGoogle()}
-              className="ui-btn ui-btn-primary !h-9 !px-4 text-sm border border-primary/30 hover:border-primary/50 transition-all active:translate-y-[1px] active:shadow-none"
-            >
-              Get Started
-            </button>
-          </div>
+          <button
+            onClick={() => signInWithGoogle()}
+            className="ui-btn ui-btn-primary !h-9 !px-4 text-sm border border-primary/30 hover:border-primary/50 transition-all active:translate-y-[1px] active:shadow-none"
+          >
+            Get Started
+          </button>
         </div>
       </div>
     </header>
   );
 }
 
-/* ================================================================
-   DELIGHT: How It Works — vertical timeline (avoids card-grid ban)
-   ================================================================ */
-const WORKS_STEPS = [
-  {
-    num: "01",
-    title: "Map your idea",
-    body: "Fill the 9-block canvas. Our AI suggests structure before you even finish typing.",
-  },
-  {
-    num: "02",
-    title: "Stress-test assumptions",
-    body: "RocketMap cross-references every block for contradictions. If your revenue model contradicts your cost structure, you'll know in seconds.",
-  },
-  {
-    num: "03",
-    title: "Leave with a plan",
-    body: "Export prioritized validation sprints. Know exactly what to prove next, and how.",
-  },
-];
+type ChapterProps = {
+  eyebrow: string;
+  title: string;
+  detail: string;
+  children: ReactNode;
+  reverse?: boolean;
+};
 
-function HowItWorks() {
+function ProductChapter({ eyebrow, title, detail, children, reverse = false }: ChapterProps) {
   return (
-    <section id="how-it-works" className="w-full max-w-[1200px] px-6 md:px-8 py-28">
-      <ScrollReveal>
-        <div className="text-center space-y-4 mb-20">
-          <span className="inline-block font-mono text-[11px] uppercase tracking-[0.12em] text-foreground-muted/60">
-            The Process
+    <section className="w-full max-w-[1200px] px-4 sm:px-6 md:px-8 py-16 md:py-28">
+      <div className={`grid items-center gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-16 ${reverse ? "lg:grid-cols-[1.25fr_0.75fr]" : ""}`}>
+        <div className={`space-y-5 ${reverse ? "lg:order-2" : ""}`}>
+          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-primary-deep">
+            {eyebrow}
           </span>
-          <h2 className="font-display text-3xl sm:text-4xl text-foreground">
-            From idea to validated plan
+          <h2 className="font-display text-4xl md:text-5xl leading-[1.03] text-foreground">
+            {title}
           </h2>
-          <p className="text-foreground-muted font-body text-lg max-w-2xl mx-auto leading-relaxed">
-            Three stages. No fluff. Every step makes your idea more concrete.
+          <p className="max-w-md font-body text-lg leading-relaxed text-foreground-muted">
+            {detail}
           </p>
         </div>
-      </ScrollReveal>
-
-      <div className="relative max-w-3xl mx-auto">
-        {/* Timeline connector line */}
-        <div className="absolute left-[19px] md:left-[27px] top-2 bottom-2 w-px bg-gradient-to-b from-foreground/10 via-foreground/5 to-transparent" />
-
-        <div className="space-y-16">
-          {WORKS_STEPS.map((step, i) => (
-            <ScrollReveal key={step.num} delay={i * 120}>
-              <div className="flex gap-6 md:gap-8 group">
-                {/* Step number + dot */}
-                <div className="relative flex flex-col items-center shrink-0">
-                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border border-border bg-canvas-surface flex items-center justify-center z-10 group-hover:border-primary/50 group-hover:shadow-[0_0_20px_rgba(var(--primary-rgb),0.18)] transition-all duration-500">
-                    <span className="font-mono text-[10px] md:text-xs font-bold text-foreground-muted group-hover:text-primary-deep transition-colors duration-500">
-                      {step.num}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="pt-1.5 md:pt-3 space-y-2">
-                  <h3 className="font-display text-xl md:text-2xl text-foreground group-hover:text-primary-deep transition-colors duration-500">
-                    {step.title}
-                  </h3>
-                  <p className="text-foreground-muted font-body leading-relaxed">
-                    {step.body}
-                  </p>
-                </div>
-              </div>
-            </ScrollReveal>
-          ))}
-        </div>
+        <div className={reverse ? "lg:order-1" : ""}>{children}</div>
       </div>
     </section>
+  );
+}
+
+function ContradictionPreview() {
+  return (
+    <div className="rounded-[14px] border border-border bg-canvas-surface p-5 shadow-[0_16px_40px_rgba(var(--ink-shadow),0.08)]">
+      <div className="flex items-center justify-between border-b border-border pb-4">
+        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground-muted">Consistency check</span>
+        <span className="rounded-full bg-state-critical/10 px-2 py-1 font-mono text-[10px] text-state-critical">1 conflict</span>
+      </div>
+      <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 mt-5">
+        <div className="bg-canvas-surface p-4">
+          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-foreground-muted">Revenue model</span>
+          <p className="mt-3 text-sm font-medium text-foreground">Enterprise annual contracts</p>
+        </div>
+        <div className="bg-canvas-surface p-4">
+          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-foreground-muted">Primary channel</span>
+          <p className="mt-3 text-sm font-medium text-foreground">Self-serve acquisition</p>
+        </div>
+      </div>
+      <div className="mt-5 rounded-lg bg-state-critical/8 p-4">
+        <p className="font-display text-xl text-foreground">These decisions pull in opposite directions.</p>
+        <p className="mt-1 text-sm text-foreground-muted">Choose sales-led, self-serve, or a deliberate hybrid.</p>
+      </div>
+    </div>
+  );
+}
+
+function SprintPreview() {
+  const tasks = [
+    ["01", "Interview 5 buyers about procurement", "High"],
+    ["02", "Test willingness to pay at $12k/year", "High"],
+    ["03", "Document a self-serve conversion path", "Medium"],
+  ];
+  return (
+    <div className="rounded-[14px] border border-border bg-canvas-surface p-5 shadow-[0_16px_40px_rgba(var(--ink-shadow),0.08)]">
+      <div className="flex items-center justify-between border-b border-border pb-4">
+        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground-muted">Validation sprint</span>
+        <span className="font-mono text-[10px] text-state-warning">3 OPEN</span>
+      </div>
+      <div className="divide-y divide-border">
+        {tasks.map(([number, task, priority]) => (
+          <div key={number} className="flex items-center gap-4 py-5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border font-mono text-[10px] text-foreground-muted">{number}</span>
+            <p className="flex-1 text-sm font-medium leading-relaxed text-foreground">{task}</p>
+            <span className={`font-mono text-[10px] uppercase ${priority === "High" ? "text-state-critical" : "text-state-warning"}`}>{priority}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex items-center gap-2 border-t border-border pt-4 text-sm text-foreground-muted">
+        <span className="h-2 w-2 rounded-full bg-state-ai" />
+        Prioritized by risk, not by a generic checklist.
+      </div>
+    </div>
   );
 }
 
@@ -309,21 +271,21 @@ function HowItWorks() {
    ================================================================ */
 function FinalCTA() {
   return (
-    <section className="w-full relative py-32 px-6 overflow-hidden">
+    <section id="workflow" className="w-full relative py-20 md:py-24 px-6 overflow-hidden">
       {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,rgba(var(--primary-rgb),0.12),transparent_70%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_80%,rgba(var(--primary-rgb),0.08),transparent_60%)]" />
       </div>
 
-      <ScrollReveal className="relative z-10 max-w-2xl mx-auto text-center space-y-8">
+      <div className="relative z-10 max-w-2xl mx-auto text-center space-y-8">
         <h2 className="font-display text-4xl sm:text-5xl md:text-6xl text-foreground leading-[1.1]">
-          Stop guessing.
+          Build the model.
           <br />
-          Start proving.
+          Test the weak point.
         </h2>
         <p className="text-lg sm:text-xl text-foreground-muted font-body max-w-2xl mx-auto leading-relaxed">
-          Join founders who use RocketMap to turn raw ideas into structured, validated businesses.
+          Your next decision deserves more than a blank canvas.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -333,21 +295,21 @@ function FinalCTA() {
               className="ui-btn ui-btn-primary !h-12 !px-8 text-base w-full sm:w-auto font-medium shadow-[0_0_20px_rgba(var(--primary-rgb),0.25)] hover:shadow-[0_0_35px_rgba(var(--primary-rgb),0.4)] transition-all border border-primary/30 hover:border-primary/50 active:translate-y-[1px] active:shadow-none"
             >
               <GoogleIcon />
-              <span className="ml-2">Continue with Google</span>
+              <span className="ml-2">Start your free canvas</span>
             </button>
           </div>
           <a
-            href="#demo"
+            href="#how-it-works"
             className="ui-btn ui-btn-secondary !h-12 !px-8 text-base w-full sm:w-auto active:translate-y-[1px]"
           >
-            Explore Demo
+            See how it works
           </a>
         </div>
 
         <p className="text-xs text-foreground-muted font-mono tracking-wide opacity-80 pt-2">
-          No credit card required. Free forever plan.
+          Free forever plan. No credit card required.
         </p>
-      </ScrollReveal>
+      </div>
     </section>
   );
 }
@@ -431,63 +393,80 @@ function LandingContent() {
 
       <TopNav />
 
-      <main className="flex-1 w-full flex flex-col items-center pt-32 pb-20 z-10">
+      <main className="flex-1 w-full flex flex-col items-center z-10">
         <ErrorBanner error={error} />
 
-        {/* Hero Section — DELIGHT: staggered entrance */}
-        <div className="max-w-4xl w-full text-center space-y-10 py-10 px-6 sm:px-12">
-          <div className="relative space-y-6">
-            <div className="landing-title-glow" />
-            <h1 className="landing-title stagger-in stagger-2 text-5xl sm:text-6xl md:text-7xl lg:text-[80px] leading-[1.1] tracking-tight mx-auto max-w-4xl">
-              Stress-test your
-              <br />
-              startup idea in seconds.
-            </h1>
-            <p className="stagger-in stagger-3 text-lg sm:text-xl md:text-2xl text-foreground-muted font-body max-w-2xl mx-auto leading-relaxed">
-              RocketMap is an AI-powered Business Model Canvas validation engine.
-              Find contradictions before the market does.
-            </p>
-          </div>
-
-          <div className="stagger-in stagger-4 flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <div className="cta-glow w-full sm:w-auto">
-              <button
-                onClick={() => signInWithGoogle()}
-                className="ui-btn ui-btn-primary !h-12 !px-8 text-base w-full sm:w-auto font-medium shadow-[0_0_20px_rgba(var(--primary-rgb),0.25)] hover:shadow-[0_0_35px_rgba(var(--primary-rgb),0.4)] transition-all border border-primary/30 hover:border-primary/50 active:translate-y-[1px] active:shadow-none"
-              >
-                <GoogleIcon />
-                <span className="ml-2">Continue with Google</span>
-              </button>
+        {/* Hero */}
+        <section className="w-full max-w-[1200px] px-4 sm:px-6 pt-24 md:pt-28 pb-6 md:pb-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="relative space-y-4 md:space-y-5">
+              <div className="landing-title-glow" />
+              <h1 className="landing-title stagger-in stagger-2 text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight mx-auto max-w-4xl">
+                Find the assumption that breaks your business model.
+              </h1>
+              <p className="stagger-in stagger-3 text-base sm:text-lg md:text-xl text-foreground-muted font-body max-w-2xl mx-auto leading-relaxed">
+                Map the business. Let RocketMap find the contradiction. Test what matters next.
+              </p>
             </div>
-            <a
-              href="#demo"
-              className="ui-btn ui-btn-secondary !h-12 !px-8 text-base w-full sm:w-auto active:translate-y-[1px]"
-            >
-              Explore Demo
-            </a>
-          </div>
 
-          <p className="stagger-in stagger-5 text-xs text-foreground-muted font-mono tracking-wide opacity-80 pt-2">
-            No credit card required. Free forever plan.
-          </p>
-        </div>
+            <div className="stagger-in stagger-4 flex flex-col sm:flex-row items-center justify-center gap-3 pt-5 md:pt-6">
+              <div className="cta-glow w-full sm:w-auto">
+                <button
+                  onClick={() => signInWithGoogle()}
+                  className="ui-btn ui-btn-primary !h-12 !px-7 text-base w-full sm:w-auto font-medium shadow-[0_0_20px_rgba(var(--primary-rgb),0.25)] hover:shadow-[0_0_35px_rgba(var(--primary-rgb),0.4)] transition-all border border-primary/30 hover:border-primary/50 active:translate-y-[1px] active:shadow-none"
+                >
+                  <GoogleIcon />
+                  <span className="ml-2">Continue with Google</span>
+                </button>
+              </div>
+              <a
+                href="#demo"
+                className="ui-btn ui-btn-secondary !h-12 !px-7 text-base w-full sm:w-auto active:translate-y-[1px]"
+              >
+                See the demo
+              </a>
+            </div>
 
-        {/* Demo Section — scroll reveal */}
-        <ScrollReveal className="w-full max-w-[1200px] px-4 md:px-8 space-y-16 pt-24 pb-20">
-          <div className="text-center space-y-4">
-            <h2 className="font-display text-3xl sm:text-4xl text-foreground">
-              Interactive Canvas Engine
-            </h2>
-            <p className="text-foreground-muted font-body text-lg max-w-2xl mx-auto">
-              Watch as AI analyzes each block, validates assumptions, and flags critical risks in real-time.
+            <p className="stagger-in stagger-5 text-xs text-foreground-muted font-mono tracking-wide opacity-80 pt-3">
+              Free forever plan. No credit card required.
             </p>
           </div>
+        </section>
 
-          <StaticBMC />
-        </ScrollReveal>
+        {/* Product proof */}
+        <section id="demo" className="w-full max-w-[1200px] px-4 sm:px-6 md:px-8 pb-16 md:pb-20">
+          <div className="text-center space-y-3 mb-6 md:mb-8">
+            <span className="inline-block font-mono text-[11px] uppercase tracking-[0.12em] text-foreground-muted/60">
+              Start with the whole model
+            </span>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-foreground">
+              One canvas, not nine disconnected boxes.
+            </h2>
+          </div>
 
-        {/* How It Works */}
-        <HowItWorks />
+          <div className="landing-canvas-preview">
+            <StaticBMC />
+          </div>
+        </section>
+
+        <div id="how-it-works">
+          <ProductChapter
+            eyebrow="Then read across it"
+            title="See where your story does not add up."
+            detail="RocketMap checks the decisions inside your model against one another, then names the tradeoff."
+          >
+            <ContradictionPreview />
+          </ProductChapter>
+
+          <ProductChapter
+            eyebrow="Turn doubt into work"
+            title="Leave with the next proof point."
+            detail="Each conflict becomes a focused validation sprint, so you know what to learn before you build."
+            reverse
+          >
+            <SprintPreview />
+          </ProductChapter>
+        </div>
 
         {/* Final CTA */}
         <FinalCTA />

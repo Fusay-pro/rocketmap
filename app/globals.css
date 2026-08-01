@@ -551,6 +551,49 @@ html {
   font-size: calc(12px * var(--canvas-font-zoom, 1));
 }
 
+/* Landing page canvas preview: scale up the demo so it is readable */
+.landing-canvas-preview {
+  --canvas-font-zoom: 1.25;
+}
+.landing-canvas-preview .text-xs {
+  font-size: calc(0.875rem * var(--canvas-font-zoom, 1));
+  line-height: 1.25rem;
+}
+.landing-canvas-preview .text-sm {
+  font-size: calc(1rem * var(--canvas-font-zoom, 1));
+  line-height: 1.5rem;
+}
+.landing-canvas-preview .font-display-small {
+  font-size: calc(1rem * var(--canvas-font-zoom, 1));
+}
+.landing-canvas-preview [class*="text-[7px]"] {
+  font-size: calc(9px * var(--canvas-font-zoom, 1));
+}
+.landing-canvas-preview [class*="text-[8px]"] {
+  font-size: calc(10px * var(--canvas-font-zoom, 1));
+}
+.landing-canvas-preview [class*="text-[9px]"] {
+  font-size: calc(11px * var(--canvas-font-zoom, 1));
+}
+.landing-canvas-preview [class*="text-[10px]"] {
+  font-size: calc(12px * var(--canvas-font-zoom, 1));
+}
+.landing-canvas-preview [class*="text-[11px]"] {
+  font-size: calc(13px * var(--canvas-font-zoom, 1));
+}
+.landing-canvas-preview [class*="text-[13px]"] {
+  font-size: calc(15px * var(--canvas-font-zoom, 1));
+}
+.landing-canvas-preview [class*="text-[15px]"] {
+  font-size: calc(17px * var(--canvas-font-zoom, 1));
+}
+.landing-canvas-preview .block-action-btn {
+  font-size: calc(9px * var(--canvas-font-zoom, 1));
+}
+.landing-canvas-preview .bmc-cell-textarea {
+  font-size: calc(12px * var(--canvas-font-zoom, 1));
+}
+
 .input-soft {
   background: var(--surface-inset);
   border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
