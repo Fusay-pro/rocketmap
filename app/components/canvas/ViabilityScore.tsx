@@ -3,7 +3,16 @@
 import { useState, useCallback } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import type { AssumptionStatus, ViabilityData } from "@/lib/types/canvas";
-import { hasInvalidatedCriticalAssumptions } from "@/lib/utils/viability";
+import {
+  hasInvalidatedCriticalAssumptions,
+  getBadgeState,
+} from "@/lib/utils/viability";
+import {
+  deriveQptpFromViability,
+  type CategoryCount,
+} from "@/lib/utils/evidence-counts";
+import { severityColorFromCount, QUESTION_COLOR } from "@/lib/utils/qptp";
+import { CountBadge } from "../ui/CountBadge";
 
 interface ViabilityScoreProps {
   canvasId: string;
@@ -11,6 +20,8 @@ interface ViabilityScoreProps {
   initialData: ViabilityData | null;
   isOutdated?: boolean;
   readOnly?: boolean;
+  /** Outstanding assumptions per category — replaces the invented % breakdown. */
+  categoryCounts?: CategoryCount[] | null;
   onExplainClick: () => void;
   onDataChange?: (data: ViabilityData) => void;
   onNavigateToAssumption?: (assumptionId: string) => void;
@@ -23,11 +34,12 @@ type ViabilityStatus =
   | "outdated"
   | "error";
 
-function getBadgeState(data: ViabilityData): "calm" | "healthy" | "warning" {
-  if (hasInvalidatedCriticalAssumptions(data.unlockSteps)) return "warning";
-  if (data.score >= 75) return "healthy";
-  return "calm";
-}
+const CATEGORY_LABELS: Record<string, string> = {
+  market: "Market",
+  product: "Product",
+  ops: "Ops",
+  legal: "Legal",
+};
 
 function getStatusIcon(status: AssumptionStatus): string {
   switch (status) {
@@ -60,6 +72,7 @@ export function ViabilityScore({
   initialData,
   isOutdated = false,
   readOnly = false,
+  categoryCounts = null,
   onExplainClick,
   onDataChange,
   onNavigateToAssumption,
@@ -140,14 +153,18 @@ export function ViabilityScore({
 
   if (!initialData) return null;
 
-  const badgeState = getBadgeState(initialData);
-  const potentialScore = initialData.potentialScore ?? initialData.score;
-  const hasPotential = potentialScore > initialData.score;
   const timeAgo = getTimeAgo(initialData.calculatedAt);
   const unlockSteps = initialData.unlockSteps ?? [];
   const factorsUp = initialData.factorsUp ?? [];
   const factorsDown = initialData.factorsDown ?? [];
   const pendingSteps = unlockSteps.filter((s) => s.status === "untested" || s.status === "testing");
+
+  const counts = deriveQptpFromViability(initialData);
+  const badgeState = getBadgeState(initialData, counts?.problems ?? 0);
+  const problemColor = severityColorFromCount(
+    counts?.problems ?? 0,
+    hasInvalidatedCriticalAssumptions(unlockSteps),
+  );
 
   return (
     <Popover.Root>
@@ -157,29 +174,20 @@ export function ViabilityScore({
             className={`viability-potential-badge viability-potential-badge--${badgeState} ${
               status === "outdated" ? "opacity-80" : ""
             }`}
+            aria-label={
+              counts
+                ? `${counts.questions} questions, ${counts.problems} potential problems`
+                : "No evidence breakdown yet"
+            }
           >
-            <span className="viability-potential-current">{initialData.score}</span>
-            {hasPotential && (
-              <>
-                <span className="viability-potential-arrow">→</span>
-                <span className="viability-potential-ceiling">{potentialScore}</span>
-              </>
+            {counts ? (
+              <span className="flex items-baseline gap-2.5">
+                <CountBadge value={counts.questions} unit="Q" color={QUESTION_COLOR} size="sm" />
+                <CountBadge value={counts.problems} unit="PTP" color={problemColor} size="sm" />
+              </span>
+            ) : (
+              <span className="text-[11px] text-foreground-muted">No breakdown yet</span>
             )}
-            <span className="viability-potential-track" aria-hidden>
-              <span
-                className="viability-potential-fill"
-                style={{ width: `${initialData.score}%` }}
-              />
-              {hasPotential && (
-                <span
-                  className="viability-potential-ghost"
-                  style={{
-                    left: `${initialData.score}%`,
-                    width: `${potentialScore - initialData.score}%`,
-                  }}
-                />
-              )}
-            </span>
           </button>
         </Popover.Trigger>
 
@@ -223,26 +231,85 @@ export function ViabilityScore({
           sideOffset={8}
           align="end"
         >
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-            <div className="shrink-0 font-mono text-lg font-bold text-foreground">
-              {initialData.score}
-              {hasPotential && (
-                <span className="text-sm font-normal text-foreground-muted">
-                  {" "}
-                  → {potentialScore}
-                </span>
+          <div className="px-4 py-3 border-b border-border">
+            <div className="text-xs font-semibold text-foreground">
+              {counts ? (
+                <>
+                  {counts.questions} {counts.questions === 1 ? "Question" : "Questions"} ·{" "}
+                  {counts.problems} Potential{" "}
+                  {counts.problems === 1 ? "Problem" : "Problems"} found
+                </>
+              ) : (
+                "Evidence"
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-foreground">Evidence</div>
-              <div className="text-[10px] text-foreground-muted/70 mt-0.5">
-                Assumptions {initialData.breakdown.assumptions}% · Market{" "}
-                {initialData.breakdown.market}% · Need {initialData.breakdown.unmetNeed}%
-              </div>
+            <div className="text-[10px] text-foreground-muted/70 mt-0.5">
+              {counts
+                ? "Be ready to answer these before someone else asks"
+                : "Recalculate to see what still needs evidence"}
             </div>
           </div>
 
           <div className="max-h-[440px] overflow-y-auto">
+            {/* The two counted sections lead, in the header's own order and
+                vocabulary. They used to sit at the very bottom of this scroll
+                area, under the strengths and the unlock path — so a badge that
+                said "1 Question · 4 Potential Problems" opened onto a wall of
+                strengths and the counted items were never seen. Whatever the
+                badge counts, the panel shows first. */}
+            {initialData.whatAbout && (
+              <div className="px-4 py-3 border-b border-border/60">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--chroma-cyan)]/70 font-semibold">
+                  {counts && counts.questions === 1 ? "Question" : "Questions"} to prepare for
+                </span>
+                <p className="text-[11px] text-foreground/80 leading-relaxed mt-1.5">
+                  {initialData.whatAbout}
+                </p>
+                <button
+                  type="button"
+                  onClick={onExplainClick}
+                  className="text-[10px] text-[var(--chroma-indigo)] hover:underline flex items-center gap-1 mt-2"
+                >
+                  Discuss this
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {factorsDown.length > 0 && (
+              <div className="px-4 py-3 border-b border-border/60">
+                <span className="text-[10px] uppercase tracking-wider text-state-critical/70 font-semibold">
+                  Potential problems
+                </span>
+                <div className="space-y-1.5 mt-1.5">
+                  {factorsDown.map((f, i) => (
+                    <div key={`down-${i}`} className="flex items-start gap-2">
+                      <span className="text-state-critical text-[11px] mt-px shrink-0">✗</span>
+                      <span className="text-[11px] text-foreground/70 leading-relaxed">{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {categoryCounts && (
+              <div className="px-4 py-3 border-b border-border/60">
+                <span className="text-[10px] uppercase tracking-wider text-foreground-muted/50 font-semibold">
+                  Open assumptions
+                </span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                  {categoryCounts.map((c) => (
+                    <span key={c.category} className="text-[11px] text-foreground/75">
+                      <span className="font-mono font-semibold text-foreground">{c.count}</span>{" "}
+                      {CATEGORY_LABELS[c.category] ?? c.category}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {(initialData.verdict || initialData.reasoning) && (
               <div className="px-4 py-3 border-b border-border/60">
                 <p className="text-[11px] text-foreground/75 leading-relaxed">
@@ -251,28 +318,19 @@ export function ViabilityScore({
               </div>
             )}
 
-            {(factorsUp.length > 0 || factorsDown.length > 0) && (
-              <div className="px-4 py-3 border-b border-border/60 space-y-1.5">
-                {factorsUp.map((f, i) => (
-                  <div key={`up-${i}`} className="flex items-start gap-2">
-                    <span className="text-primary text-[11px] mt-px shrink-0">
-                      ✦
-                    </span>
-                    <span className="text-[11px] text-foreground/70 leading-relaxed">
-                      {f}
-                    </span>
-                  </div>
-                ))}
-                {factorsDown.map((f, i) => (
-                  <div key={`down-${i}`} className="flex items-start gap-2">
-                    <span className="text-state-critical text-[11px] mt-px shrink-0">
-                      ✗
-                    </span>
-                    <span className="text-[11px] text-foreground/70 leading-relaxed">
-                      {f}
-                    </span>
-                  </div>
-                ))}
+            {factorsUp.length > 0 && (
+              <div className="px-4 py-3 border-b border-border/60">
+                <span className="text-[10px] uppercase tracking-wider text-foreground-muted/50 font-semibold">
+                  Working in your favour
+                </span>
+                <div className="space-y-1.5 mt-1.5">
+                  {factorsUp.map((f, i) => (
+                    <div key={`up-${i}`} className="flex items-start gap-2">
+                      <span className="text-primary text-[11px] mt-px shrink-0">✦</span>
+                      <span className="text-[11px] text-foreground/70 leading-relaxed">{f}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -332,11 +390,15 @@ export function ViabilityScore({
                                 {step.assumption}
                               </span>
                               <span
-                                className={`shrink-0 font-mono text-[10px] ${
-                                  isDone ? "text-primary" : "text-state-ai"
+                                className={`shrink-0 font-mono text-[10px] uppercase ${
+                                  isDone
+                                    ? "text-primary"
+                                    : step.riskLevel === "high"
+                                      ? "text-state-critical"
+                                      : "text-state-ai"
                                 }`}
                               >
-                                {isDone ? "done" : `+${step.upliftPoints}%`}
+                                {isDone ? "done" : step.riskLevel}
                               </span>
                             </div>
                             {step.suggestedTest && !isDone && (
@@ -353,35 +415,6 @@ export function ViabilityScore({
               )}
             </div>
 
-            {initialData.whatAbout && (
-              <div className="px-4 py-3">
-                <div className="rounded-lg border border-border bg-canvas-surface p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-foreground-muted/50 font-semibold mb-1.5">
-                    What about
-                  </div>
-                  <p className="text-[11px] text-foreground/80 leading-relaxed mb-2">
-                    {initialData.whatAbout}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={onExplainClick}
-                    className="text-[10px] text-[var(--chroma-indigo)] hover:underline flex items-center gap-1"
-                  >
-                    Discuss this
-                    <svg
-                      width="9"
-                      height="9"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="px-4 py-2.5 border-t border-border flex items-center justify-between">

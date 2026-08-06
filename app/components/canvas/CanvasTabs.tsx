@@ -2,6 +2,7 @@
 
 import type { CanvasTab, ViabilityData } from "@/lib/types/canvas";
 import { ViabilityScore } from "./ViabilityScore";
+import type { CategoryCount } from "@/lib/utils/evidence-counts";
 
 interface CanvasTabsProps {
   activeTab: CanvasTab;
@@ -11,6 +12,7 @@ interface CanvasTabsProps {
   allBlocksFilled: boolean;
   viabilityData: ViabilityData | null;
   viabilityOutdated?: boolean;
+  categoryCounts?: CategoryCount[] | null;
   readOnly?: boolean;
   onExplainViability: () => void;
   onViabilityDataChange?: (data: ViabilityData) => void;
@@ -42,6 +44,7 @@ export function CanvasTabs({
   allBlocksFilled,
   viabilityData,
   viabilityOutdated = false,
+  categoryCounts = null,
   readOnly = false,
   onExplainViability,
   onViabilityDataChange,
@@ -100,6 +103,7 @@ export function CanvasTabs({
         allBlocksFilled={allBlocksFilled}
         initialData={viabilityData}
         isOutdated={viabilityOutdated}
+        categoryCounts={categoryCounts}
         readOnly={readOnly}
         onExplainClick={onExplainViability}
         onDataChange={onViabilityDataChange}

@@ -2839,6 +2839,9 @@ html {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
+  row-gap: 0.5rem;
+  flex-wrap: wrap;
   padding: 0 1.25rem 1.25rem;
   flex-shrink: 0;
 }
@@ -2848,6 +2851,7 @@ html {
   align-items: center;
   gap: 0.5rem;
   flex: 1;
+  min-width: 80px;
   max-width: 120px;
 }
 
@@ -2874,37 +2878,26 @@ html {
   white-space: nowrap;
 }
 
-.canvas-row-viability {
+.canvas-row-counts {
   display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  font-family: var(--font-mono), monospace;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--foreground);
-}
-
-.canvas-row-viability-arrow {
-  color: var(--foreground-subtle);
-  font-weight: 400;
+  align-items: baseline;
+  gap: 0.625rem;
+  flex-shrink: 0;
 }
 
 .canvas-row-time {
-  position: absolute;
-  bottom: 1.25rem;
-  right: 1.25rem;
-  text-align: right;
+  display: grid;
+  justify-items: end;
+  flex-shrink: 0;
+  margin-left: auto;
   font-family: var(--font-mono), monospace;
   font-size: 0.7rem;
   color: var(--foreground-subtle);
-  height: 1em;
 }
 
 .canvas-row-time-relative,
 .canvas-row-time-absolute {
-  position: absolute;
-  right: 0;
-  top: 0;
+  grid-area: 1 / 1;
   white-space: nowrap;
   transition:
     opacity var(--dash-duration-fast, 160ms) var(--dash-ease, ease),
@@ -3736,13 +3729,11 @@ html {
     justify-content: center;
   }
 
-  .canvas-row-stats,
-  .canvas-row-viability {
+  /* The stats row used to be hidden here to paper over the timestamp overlap.
+     That's fixed in-flow now, so counts stay visible on mobile — they're the
+     point. Only the progress bar drops, keeping its "N/9" label. */
+  .canvas-row-progress-track {
     display: none;
-  }
-
-  .canvas-row-time {
-    width: auto;
   }
 
   .dashboard-header {

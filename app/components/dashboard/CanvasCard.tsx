@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { DropdownMenu } from "@radix-ui/themes";
 import { CanvasBmcPreview } from "./CanvasBmcPreview";
+import { CountBadge } from "../ui/CountBadge";
+import { severityColorFromCount, QUESTION_COLOR } from "@/lib/utils/qptp";
+import type { QptpCounts } from "@/lib/utils/evidence-counts";
 import type { BlockType, CanvasData } from "@/lib/types/canvas";
 
 interface CanvasCardProps {
   canvas: CanvasData & {
     blocksCount: number;
     filledBlocks: BlockType[];
-    viabilityScore: number | null;
-    viabilityPotentialScore: number | null;
+    qptp: QptpCounts | null;
   };
   onShare: (slug: string) => void;
   onTogglePublic: (canvasId: string, isPublic: boolean) => void;
@@ -47,8 +49,6 @@ export function CanvasCard({
   index = 0,
 }: CanvasCardProps) {
   const progressPct = Math.round((canvas.blocksCount / 9) * 100);
-  const hasViability =
-    canvas.viabilityScore !== null || canvas.viabilityPotentialScore !== null;
 
   return (
     <article
@@ -89,28 +89,36 @@ export function CanvasCard({
             </span>
           </div>
 
-          {hasViability ? (
-            <span className="canvas-row-viability">
-              {canvas.viabilityScore ?? "—"}
-              {canvas.viabilityPotentialScore !== null &&
-              canvas.viabilityPotentialScore !== canvas.viabilityScore ? (
-                <>
-                  <span className="canvas-row-viability-arrow">→</span>
-                  {canvas.viabilityPotentialScore}
-                </>
-              ) : null}
+          {canvas.qptp ? (
+            <span
+              className="canvas-row-counts"
+              aria-label={`${canvas.qptp.questions} questions, ${canvas.qptp.problems} potential problems`}
+            >
+              <CountBadge
+                value={canvas.qptp.questions}
+                unit="Q"
+                color={QUESTION_COLOR}
+                size="sm"
+              />
+              <CountBadge
+                value={canvas.qptp.problems}
+                unit="PTP"
+                color={severityColorFromCount(canvas.qptp.problems)}
+                size="sm"
+              />
             </span>
           ) : null}
-        </div>
 
-        <time className="canvas-row-time" dateTime={canvas.$updatedAt}>
-          <span className="canvas-row-time-relative">
-            {timeAgo(canvas.$updatedAt ?? "")}
-          </span>
-          <span className="canvas-row-time-absolute">
-            {formatDate(canvas.$updatedAt ?? "")}
-          </span>
-        </time>
+          {/* In-flow, not absolutely positioned — it used to overlap the counts. */}
+          <time className="canvas-row-time" dateTime={canvas.$updatedAt}>
+            <span className="canvas-row-time-relative">
+              {timeAgo(canvas.$updatedAt ?? "")}
+            </span>
+            <span className="canvas-row-time-absolute">
+              {formatDate(canvas.$updatedAt ?? "")}
+            </span>
+          </time>
+        </div>
       </Link>
 
       <div className="canvas-row-actions">

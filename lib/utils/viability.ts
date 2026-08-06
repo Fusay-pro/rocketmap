@@ -94,13 +94,32 @@ export function computeLiveScore(
 }
 
 export function hasInvalidatedCriticalAssumptions(
-  steps: ViabilityUnlockStep[],
+  steps: ViabilityUnlockStep[] | null | undefined,
 ): boolean {
-  return steps.some(
+  // Guarded: the onDataChange path writes a raw server payload straight into
+  // state, bypassing normalizeViabilityData, so unlockSteps can be undefined.
+  return (steps ?? []).some(
     (s) =>
       (s.status === "refuted" || s.status === "inconclusive") &&
       s.riskLevel === "high",
   );
+}
+
+export type BadgeState = "calm" | "healthy" | "warning";
+
+/**
+ * Colour state for the Evidence badge, keyed on the count of open problems
+ * rather than a 0-100 score. A model with several unaddressed problems reads
+ * as warning regardless of what any score would have said.
+ */
+export function getBadgeState(
+  data: Pick<ViabilityData, "unlockSteps" | "factorsUp"> | null | undefined,
+  problems: number,
+): BadgeState {
+  if (hasInvalidatedCriticalAssumptions(data?.unlockSteps)) return "warning";
+  if (problems >= 3) return "warning";
+  if (problems === 0 && (data?.factorsUp?.length ?? 0) > 0) return "healthy";
+  return "calm";
 }
 
 export function computeWeightedScore(breakdown: {

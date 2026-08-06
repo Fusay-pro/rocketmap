@@ -34,11 +34,13 @@ export const checkConsistency = tool({
       issue: z.string().describe('Description of the contradiction'),
       severity: z.enum(['minor', 'major', 'critical']),
       suggestion: z.string().describe('How to resolve this contradiction'),
+      question: z.string().describe('The tough question an investor or audience member would ask about this specific problem — the founder must be ready to answer it'),
     })).describe('Cross-block contradictions found'),
     missingLinks: z.array(z.object({
       from: z.string().describe('Source block'),
       to: z.string().describe('Target block'),
       issue: z.string().describe('What connection is missing'),
+      question: z.string().describe('The tough question an investor or audience member would ask about this specific gap — the founder must be ready to answer it'),
     })).describe('Missing connections between blocks'),
     chainFindings: z.array(z.object({
       fromZone: z.string().describe('Upstream BM-OS zone, e.g. customer_market'),
@@ -47,8 +49,9 @@ export const checkConsistency = tool({
       severity: z.enum(['minor', 'major', 'critical']),
       evidenceNeeded: z.string().describe('Metric, experiment, or evidence required to validate this link'),
       suggestion: z.string().describe('Specific change or test to repair the chain link'),
+      question: z.string().describe('The tough question an investor or audience member would ask about this specific weakness — the founder must be ready to answer it'),
     })).optional().describe('Dependency-chain findings across BM-OS zones'),
-    overallScore: z.number().min(0).max(100).describe('Overall coherence score 0-100'),
+    hostQuestions: z.array(z.string()).describe('Tough questions an investor, judge, or audience member would likely ask about this business model — questions the founder should be prepared to answer. Derive them from the weakest links, contradictions, and gaps found. 3-8 questions.'),
   }),
   execute: async (params) => params,
 });

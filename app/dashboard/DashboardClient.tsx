@@ -6,6 +6,7 @@ import { OnboardingModal } from "../components/OnboardingModal";
 import { CanvasCard } from "../components/dashboard/CanvasCard";
 import { AIGuidedModal } from "../components/dashboard/AIGuidedModal";
 import type { BlockType } from "@/lib/types/canvas";
+import type { QptpCounts } from "@/lib/utils/evidence-counts";
 
 interface DashboardClientProps {
   user: {
@@ -24,8 +25,7 @@ interface DashboardClientProps {
     $createdAt: string;
     blocksCount: number;
     filledBlocks: BlockType[];
-    viabilityScore: number | null;
-    viabilityPotentialScore: number | null;
+    qptp: QptpCounts | null;
   }[];
 }
 

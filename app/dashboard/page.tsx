@@ -9,7 +9,8 @@ import {
 import { Query } from "node-appwrite";
 import { DashboardClient } from "./DashboardClient";
 import { listCanvasesByOwner } from "@/lib/utils";
-import type { BlockType } from "@/lib/types/canvas";
+import { deriveQptpFromViability, type QptpCounts } from "@/lib/utils/evidence-counts";
+import type { BlockType, ViabilityData } from "@/lib/types/canvas";
 
 export default async function DashboardPage() {
   const user = await getSessionUser();
@@ -47,7 +48,7 @@ export default async function DashboardPage() {
 
   // Fetch user's canvases with block details
   // Index required: canvases.user + $updatedAt (composite, desc)
-  // Index required: blocks.canvasId (key)
+  // Index required: blocks.canvas (relationship — auto-indexed by Appwrite)
   let canvases: {
     $id: string;
     title: string;
@@ -58,8 +59,7 @@ export default async function DashboardPage() {
     isPublic: boolean;
     blocksCount: number;
     filledBlocks: BlockType[];
-    viabilityScore: number | null;
-    viabilityPotentialScore: number | null;
+    qptp: QptpCounts | null;
   }[] = [];
   try {
     const canvasesResult = await listCanvasesByOwner(user.$id, [
@@ -72,7 +72,6 @@ export default async function DashboardPage() {
         "$updatedAt",
         "$createdAt",
         "isPublic",
-        "viabilityScore",
         "viabilityDataJson",
       ]),
       Query.limit(25),
@@ -80,15 +79,17 @@ export default async function DashboardPage() {
 
     canvases = await Promise.all(
       canvasesResult.rows.map(async (doc) => {
-        const filledBlocks: BlockType[] = [];
+        // A canvas holds many atomic rows per block type (33-49 is typical), so
+        // dedupe by type — the card shows how many of the 9 types are filled.
+        const filledBlockTypes = new Set<BlockType>();
         try {
           const blocksResult = await serverTablesDB.listRows({
             databaseId: DATABASE_ID,
             tableId: BLOCKS_TABLE_ID,
             queries: [
-              Query.equal("canvasId", doc.$id),
+              Query.equal("canvas", doc.$id),
               Query.select(["$id", "blockType", "contentJson"]),
-              Query.limit(9),
+              Query.limit(100),
             ],
           });
           for (const block of blocksResult.rows) {
@@ -100,34 +101,32 @@ export default async function DashboardPage() {
                 (parsed.bmc && parsed.bmc.trim() !== "") ||
                 (parsed.lean && parsed.lean.trim() !== "")
               ) {
-                filledBlocks.push(block.blockType as BlockType);
+                filledBlockTypes.add(block.blockType as BlockType);
               }
             } catch {
               if (content.trim() !== "") {
-                filledBlocks.push(block.blockType as BlockType);
+                filledBlockTypes.add(block.blockType as BlockType);
               }
             }
           }
-        } catch {
-          // Blocks collection might not exist
+        } catch (error) {
+          // Never swallow silently — a bare catch here hid the canvasId bug
+          // (every card rendering 0/9) for the whole life of the feature.
+          console.error(`[dashboard] block fetch failed for canvas ${doc.$id}:`, error);
         }
+        const filledBlocks = Array.from(filledBlockTypes);
         const d = doc as Record<string, unknown>;
-        let viabilityPotentialScore: number | null = null;
+        // Q / PTP counts, or null when the payload predates factor arrays.
+        // Null means render nothing — a 0Q / 0PTP would be invented.
+        let qptp: QptpCounts | null = null;
         const viabilityDataJson = d.viabilityDataJson as string | undefined;
         if (viabilityDataJson) {
           try {
-            const parsed = JSON.parse(viabilityDataJson) as {
-              potentialScore?: number;
-              score?: number;
-            };
-            viabilityPotentialScore =
-              typeof parsed.potentialScore === "number"
-                ? parsed.potentialScore
-                : typeof parsed.score === "number"
-                  ? parsed.score
-                  : null;
+            qptp = deriveQptpFromViability(
+              JSON.parse(viabilityDataJson) as Partial<ViabilityData>,
+            );
           } catch {
-            viabilityPotentialScore = null;
+            qptp = null;
           }
         }
         return {
@@ -140,8 +139,7 @@ export default async function DashboardPage() {
           isPublic: (d.isPublic as boolean) ?? false,
           blocksCount: filledBlocks.length,
           filledBlocks,
-          viabilityScore: (d.viabilityScore as number) ?? null,
-          viabilityPotentialScore,
+          qptp,
         };
       }),
     );

@@ -283,7 +283,9 @@ export function buildSystemPrompt(agentType: AgentType, blocks: BlockData[], ass
 
 Use the Business Model OS dependency chain as the primary validation frame:
 segment -> JTBD -> value proposition -> product -> payment moment -> unit economics -> channel -> partnership -> operating model -> scalability -> defensibility -> metrics -> experiments.
-Prioritize chain-level failures such as TAM not supporting revenue, pricing not exceeding cost-to-serve, beachhead not matching value proposition target, channels exceeding allowable CAC, or partnerships creating fragile dependencies.`;
+Prioritize chain-level failures such as TAM not supporting revenue, pricing not exceeding cost-to-serve, beachhead not matching value proposition target, channels exceeding allowable CAC, or partnerships creating fragile dependencies.
+
+For EVERY contradiction, missing link, and chain finding, include the question field: the tough question an investor, judge, or audience member would ask about that specific problem. Additionally produce hostQuestions: broader tough questions the founder must be ready to answer. Ground every question in a specific gap, contradiction, or weak link you found in THIS canvas — never generic pitch questions.`;
 
     if (assumptions && assumptions.length > 0) {
       focusInstruction += `\n\nAdditionally, review the tracked assumptions below and:

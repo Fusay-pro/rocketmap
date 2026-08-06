@@ -29,6 +29,7 @@ import type {
 } from "@/lib/types/canvas";
 import { getSegmentColor } from "@/lib/types/canvas";
 import { computeLiveScore } from "@/lib/utils/viability";
+import { deriveCategoryCounts, deriveQptpFromViability, type CategoryCount } from "@/lib/utils/evidence-counts";
 import type { HoveredItem } from "@/app/components/canvas/ConnectionOverlay";
 import type { ConsistencyData } from "@/app/components/canvas/ConsistencyReport";
 import {
@@ -135,6 +136,7 @@ export function CanvasClient({
     initialViabilityData ?? null,
   );
   const [viabilityOutdated, setViabilityOutdated] = useState(false);
+  const [categoryCounts, setCategoryCounts] = useState<CategoryCount[] | null>(null);
   const viabilityBlocksFingerprintRef = useRef<string | null>(null);
   const viabilityAssumptionsFingerprintRef = useRef<string | null>(null);
   const viabilityAssumptionsRecalcTimerRef = useRef<ReturnType<
@@ -293,6 +295,11 @@ export function CanvasClient({
         const res = await fetch(`/api/canvas/${canvasId}/assumptions`);
         if (!res.ok) return;
         const assumptions: Assumption[] = await res.json();
+
+        // Reuse this fetch for the Evidence popover's category breakdown.
+        // Set before the fingerprint short-circuit so it populates on first load.
+        setCategoryCounts(deriveCategoryCounts(assumptions));
+
         const fingerprint = assumptions
           .map((a) => `${a.$id}:${a.status}`)
           .sort()
@@ -567,8 +574,7 @@ export function CanvasClient({
       const record = value as Record<string, unknown>;
       return (
         Array.isArray(record.contradictions) &&
-        Array.isArray(record.missingLinks) &&
-        typeof record.overallScore === "number"
+        Array.isArray(record.missingLinks)
       );
     };
     const extractConsistencyResult = (value: unknown): ConsistencyData | null => {
@@ -635,7 +641,7 @@ export function CanvasClient({
                 {
                   type: "text",
                   text:
-                    "Run a full consistency check across all blocks. Use the checkConsistency tool to provide your structured analysis of contradictions, missing links, chain findings, and overall coherence.",
+                    "Run a full consistency check across all blocks. Use the checkConsistency tool to provide your structured analysis of contradictions, missing links, chain findings, and the tough questions the founder should be ready to answer.",
                 },
               ],
             },
@@ -707,7 +713,7 @@ export function CanvasClient({
         ],
         missingLinks: [],
         chainFindings: [],
-        overallScore: 0,
+        hostQuestions: [],
       });
     } finally {
       setIsCheckingConsistency(false);
@@ -748,9 +754,27 @@ export function CanvasClient({
     setChatMinimized(false);
     setChatTargetBlock(null); // System-level chat
 
-    const seed = viabilityData.whatAbout?.trim()
-      ? `Evidence score: ${viabilityData.score}/100${viabilityData.potentialScore > viabilityData.score ? ` (potential ${viabilityData.potentialScore})` : ""}\n\n${viabilityData.whatAbout}`
-      : `Explain my canvas evidence score of ${viabilityData.score}% and what I should test to improve it.`;
+    // Seeded with the concrete question and problems, never the 0-100 score.
+    // This was the last place the old number still surfaced: it wrote
+    // "Evidence score: 20/100" straight into the chat, so the invented
+    // precision the badge had stopped showing reappeared the moment anyone
+    // clicked "Ask AI".
+    const counts = deriveQptpFromViability(viabilityData);
+    const question = viabilityData.whatAbout?.trim();
+    const problems = viabilityData.factorsDown ?? [];
+
+    let seed: string;
+    if (question) {
+      const header = counts
+        ? `${counts.questions} ${counts.questions === 1 ? "question" : "questions"} · ${counts.problems} potential ${counts.problems === 1 ? "problem" : "problems"} to prepare for.`
+        : "Help me prepare for this.";
+      const problemList = problems.length > 0 ? `\n\nPotential problems:\n${problems.map((p) => `- ${p}`).join("\n")}` : "";
+      seed = `${header}\n\n${question}${problemList}`;
+    } else if (problems.length > 0) {
+      seed = `Help me get ready to answer these potential problems with my canvas:\n${problems.map((p) => `- ${p}`).join("\n")}`;
+    } else {
+      seed = "What are the weakest parts of my canvas right now, and what should I test first?";
+    }
 
     setPendingChatMessage(seed);
   }, [viabilityData]);
@@ -1405,6 +1429,7 @@ export function CanvasClient({
         allBlocksFilled={allBlocksFilled}
         viabilityData={viabilityData}
         viabilityOutdated={viabilityOutdated}
+        categoryCounts={categoryCounts}
         readOnly={readOnly}
         onExplainViability={handleExplainViability}
         onViabilityDataChange={(data) => {
