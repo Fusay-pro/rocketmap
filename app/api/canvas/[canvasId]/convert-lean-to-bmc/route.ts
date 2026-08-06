@@ -7,12 +7,11 @@ import { requireAuth } from '@/lib/appwrite-server';
 import {
   serverTablesDB,
   DATABASE_ID,
-  CANVASES_TABLE_ID,
   BLOCKS_TABLE_ID,
 } from '@/lib/appwrite';
 import { getCanvasBlocks } from '@/lib/ai/canvas-state';
 import { BLOCK_DEFINITIONS, isSharedBlock } from '@/app/components/canvas/constants';
-import { recordAiUsage } from '@/lib/ai/user-preferences';
+import { recordAiUsage, getAiApiKeyFromUser } from '@/lib/ai/user-preferences';
 import { getModelForPurpose, getModelIdForPurpose } from '@/lib/ai/models';
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 
@@ -84,7 +83,7 @@ export async function POST(_request: Request, context: RouteContext) {
     const { result, usage } = await generateTextWithLogging(
       'convert-lean-to-bmc',
       {
-        model: getModelForPurpose('reasoning'),
+        model: getModelForPurpose('reasoning', getAiApiKeyFromUser(user)),
         system: `You are a business model expert helping convert a Lean Canvas into a Business Model Canvas (BMC).
 
 The Lean Canvas has these blocks: Problem, Solution, Key Metrics, Unique Value Proposition, Unfair Advantage, Channels, Customer Segments, Cost Structure, Revenue Streams.
@@ -144,13 +143,6 @@ Use the convertLeanToBmc tool to generate BMC content for all 5 non-shared block
     }
 
     // Persist converted content to Appwrite
-    const canvas = await serverTablesDB.getRow({
-      databaseId: DATABASE_ID,
-      tableId: CANVASES_TABLE_ID,
-      rowId: canvasId,
-    });
-    const canvasIntId = canvas.id as number;
-
     const NON_SHARED_TYPES = ['key_partnerships', 'key_activities', 'key_resources', 'value_prop', 'customer_relationships'];
     const updates: { blockType: string; bmc: string; lean: string; reasoning: string }[] = [];
 
@@ -163,12 +155,15 @@ Use the convertLeanToBmc tool to generate BMC content for all 5 non-shared block
 
       const newContent = { bmc: conv.content, lean: block.content.lean };
 
+      // Ordered so we always write to the same row the canvas page reads as
+      // the block's main content (`docsForType[0]`).
       const existing = await serverTablesDB.listRows({
         databaseId: DATABASE_ID,
         tableId: BLOCKS_TABLE_ID,
         queries: [
-          Query.equal('canvasId', canvasIntId),
+          Query.equal('canvas', canvasId),
           Query.equal('blockType', blockType),
+          Query.orderAsc('$id'),
           Query.limit(1),
         ],
       });

@@ -52,7 +52,7 @@ export async function POST(
         queries: [
           Query.equal('canvas', source.$id),
           Query.select(["$id", "blockType", "contentJson"]),
-          Query.limit(9),
+          Query.limit(100),
         ],
       });
       // Create duplicated blocks in parallel
@@ -63,15 +63,17 @@ export async function POST(
             tableId: BLOCKS_TABLE_ID,
             rowId: ID.unique(),
             data: {
-              canvasId: newCanvas.$id,
+              canvas: newCanvas.$id,
               blockType: block.blockType,
               contentJson: block.contentJson,
             },
           }),
         ),
       );
-    } catch {
-      // Blocks might not exist
+    } catch (error) {
+      // Was silently swallowed — writing to the dead `canvasId` field is why
+      // duplicated canvases came out with no blocks at all.
+      console.error(`[duplicate] block copy failed for canvas ${source.$id}:`, error);
     }
 
     return NextResponse.json({ slug, $id: newCanvas.$id });

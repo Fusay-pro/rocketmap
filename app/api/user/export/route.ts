@@ -19,14 +19,15 @@ export async function GET() {
       canvasesResult.rows.map(async (canvas) => {
         let blocks: { blockType: string; content: unknown }[] = [];
         try {
-          // Index required: canvasId (key)
+          // Index required: blocks.canvas (relationship — auto-indexed by Appwrite)
+          // Export every atomic row, not just 9 — a canvas holds 33-49 of them.
           const blocksResult = await serverTablesDB.listRows({
             databaseId: DATABASE_ID,
             tableId: BLOCKS_TABLE_ID,
             queries: [
-              Query.equal('canvasId', canvas.$id),
+              Query.equal('canvas', canvas.$id),
               Query.select(['blockType', 'contentJson']),
-              Query.limit(9),
+              Query.limit(100),
             ],
           });
           blocks = blocksResult.rows.map((block) => ({
@@ -36,8 +37,8 @@ export async function GET() {
               catch { return { bmc: '', lean: '' }; }
             })(),
           }));
-        } catch {
-          // skip
+        } catch (error) {
+          console.error(`[export] block fetch failed for canvas ${canvas.$id}:`, error);
         }
         const c = canvas as Record<string, unknown>;
         return {

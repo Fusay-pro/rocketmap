@@ -20,7 +20,7 @@ export default async function AccountPage() {
   let totalBlocksFilled = 0;
 
   // Index required: canvases.user (key)
-  // Index required: blocks.canvasId (key)
+  // Index required: blocks.canvas (relationship — auto-indexed by Appwrite)
   try {
     const canvasesResult = await listCanvasesByOwner(user.$id, [
       Query.select(["$id"]),
@@ -34,26 +34,32 @@ export default async function AccountPage() {
           databaseId: DATABASE_ID,
           tableId: BLOCKS_TABLE_ID,
           queries: [
-            Query.equal("canvasId", canvas.$id),
-            Query.select(["$id", "contentJson"]),
-            Query.limit(9),
+            Query.equal("canvas", canvas.$id),
+            Query.select(["$id", "blockType", "contentJson"]),
+            Query.limit(100),
           ],
         });
-        totalBlocksFilled += blocksResult.rows.filter((block) => {
+        // Dedupe by block type so this stat means the same thing as the
+        // dashboard card's "N/9" — a canvas holds many atomic rows per type.
+        const filledTypes = new Set<string>();
+        for (const block of blocksResult.rows) {
           const content = block.contentJson as string;
-          if (!content) return false;
+          if (!content) continue;
+          let hasContent: boolean;
           try {
             const parsed = JSON.parse(content);
-            return (
+            hasContent = Boolean(
               (parsed.bmc && parsed.bmc.trim() !== "") ||
-              (parsed.lean && parsed.lean.trim() !== "")
+                (parsed.lean && parsed.lean.trim() !== ""),
             );
           } catch {
-            return content.trim() !== "";
+            hasContent = content.trim() !== "";
           }
-        }).length;
-      } catch {
-        // skip
+          if (hasContent) filledTypes.add(block.blockType as string);
+        }
+        totalBlocksFilled += filledTypes.size;
+      } catch (error) {
+        console.error(`[account] block fetch failed for canvas ${canvas.$id}:`, error);
       }
     }
   } catch {

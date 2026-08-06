@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { Query } from "node-appwrite";
 import { requireAuth } from "@/lib/appwrite-server";
 import { generateSlug, getUserIdFromCanvas } from "@/lib/utils";
 import {
   serverTablesDB,
   DATABASE_ID,
   CANVASES_TABLE_ID,
-  BLOCKS_TABLE_ID,
 } from "@/lib/appwrite";
 import type { CanvasData } from "@/lib/types/canvas";
 
@@ -83,30 +81,9 @@ export async function DELETE(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Fetch only block $id values for deletion
-    const canvasIntId = canvas.id as number;
-    const blocks = await serverTablesDB.listRows({
-      databaseId: DATABASE_ID,
-      tableId: BLOCKS_TABLE_ID,
-      queries: [
-        Query.equal("canvasId", canvasIntId),
-        Query.select(["$id"]),
-        Query.limit(25),
-      ],
-    });
-
-    // Delete blocks in parallel for faster cleanup
-    await Promise.all(
-      blocks.rows.map((block: { $id: string }) =>
-        serverTablesDB.deleteRow({
-          databaseId: DATABASE_ID,
-          tableId: BLOCKS_TABLE_ID,
-          rowId: block.$id,
-        }),
-      ),
-    );
-
-    // Delete canvas
+    // Blocks, segments, messages and assumptions all cascade off the `canvas`
+    // relationship, so deleting the canvas is sufficient. (The old manual block
+    // cleanup queried a `canvasId` column that no longer exists and threw.)
     await serverTablesDB.deleteRow({
       databaseId: DATABASE_ID,
       tableId: CANVASES_TABLE_ID,
