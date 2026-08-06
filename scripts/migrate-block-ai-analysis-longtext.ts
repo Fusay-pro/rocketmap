@@ -169,7 +169,12 @@ async function main() {
 }
 
 main()
-  .then(() => console.log("\nDone. Block analysis can now persist at full size."))
+  // Only claim success when something actually happened. Printing "Done." after
+  // a dry run is how a destructive migration gets ticked off as complete while
+  // the column is still varchar(1000) and analyses are still being dropped.
+  .then(() => {
+    if (APPLY) console.log("\nDone. Block analysis can now persist at full size.");
+  })
   .catch((e) => {
     console.error("\nMigration failed:", e);
     console.error(
