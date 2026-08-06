@@ -6,7 +6,7 @@ import { getAgentConfig } from '@/lib/ai/agents';
 import { getToolsForAgent } from '@/lib/ai/tools';
 import { saveChatMessage } from '@/lib/ai/chat-persistence';
 import type { BlockType } from '@/lib/types/canvas';
-import { recordAiUsage } from '@/lib/ai/user-preferences';
+import { recordAiUsage, getAiApiKeyFromUser } from '@/lib/ai/user-preferences';
 import { getModelForPurpose, getModelIdForPurpose } from '@/lib/ai/models';
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 
@@ -32,7 +32,7 @@ export async function POST(request: Request, context: RouteContext) {
     const modelId = getModelIdForPurpose('fast');
 
     const result = streamTextWithLogging(`block-chat:${blockType}`, {
-      model: getModelForPurpose('fast'),
+      model: getModelForPurpose('fast', getAiApiKeyFromUser(user)),
       system: config.systemPrompt,
       messages: modelMessages,
       tools,

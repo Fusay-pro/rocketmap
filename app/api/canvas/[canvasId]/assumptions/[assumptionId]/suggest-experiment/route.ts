@@ -1,7 +1,7 @@
 import { generateTextWithLogging } from '@/lib/ai/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/appwrite-server';
-import { recordAiUsage } from '@/lib/ai/user-preferences';
+import { recordAiUsage, getAiApiKeyFromUser } from '@/lib/ai/user-preferences';
 import { getModelForPurpose, getModelIdForPurpose } from '@/lib/ai/models';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { getCanvasBlocks } from '@/lib/ai/canvas-state';
@@ -36,7 +36,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     const systemPrompt = buildSystemPrompt('general', blocks);
 
     const { result } = await generateTextWithLogging('suggest-experiment', {
-      model: getModelForPurpose('fast'),
+      model: getModelForPurpose('fast', getAiApiKeyFromUser(user)),
       system: systemPrompt,
       prompt: `Suggest the cheapest and fastest experiment to validate this assumption:
 

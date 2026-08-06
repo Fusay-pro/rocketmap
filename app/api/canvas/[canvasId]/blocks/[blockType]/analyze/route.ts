@@ -12,7 +12,7 @@ import { getCanvasBlocks } from '@/lib/ai/canvas-state';
 import { getAgentConfig } from '@/lib/ai/agents';
 import { getToolsForAgent } from '@/lib/ai/tools';
 import type { BlockType } from '@/lib/types/canvas';
-import { recordAiUsage } from '@/lib/ai/user-preferences';
+import { recordAiUsage, getAiApiKeyFromUser } from '@/lib/ai/user-preferences';
 import { getModelForPurpose, getModelIdForPurpose } from '@/lib/ai/models';
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 
@@ -23,6 +23,10 @@ interface RouteContext {
 export async function POST(_request: Request, context: RouteContext) {
   try {
     const user = await requireAuth();
+    const quota = await checkAiQuota(user);
+    if (!quota.allowed) {
+      return createQuotaExceededResponse(quota);
+    }
     const { canvasId, blockType } = await context.params;
     console.log(`[analyze] canvasId=${canvasId} blockType=${blockType} userId=${user.$id}`);
 
@@ -46,7 +50,7 @@ export async function POST(_request: Request, context: RouteContext) {
     const result = streamTextWithLogging(
       `analyze:${blockType}`,
       {
-        model: getModelForPurpose('reasoning'),
+        model: getModelForPurpose('reasoning', getAiApiKeyFromUser(user)),
         system: config.systemPrompt,
         messages: [
           {
@@ -66,8 +70,33 @@ export async function POST(_request: Request, context: RouteContext) {
       },
     );
 
-    // Persist results to Appwrite after stream completes (fire-and-forget)
-    Promise.resolve(result.steps).then(async (steps) => {
+    // Persist after the stream completes. The HTTP response is already
+    // committed by then, so failures can only be logged — hence the loud,
+    // structured logging inside.
+    void persistBlockAnalysis(canvasId, blockType, result.steps, content);
+
+    return result.toUIMessageStreamResponse();
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Block analyze error:', message);
+    return new Response(JSON.stringify({ error: message }), {
+      status: message === 'Unauthorized' ? 401 : message === 'Forbidden' ? 403 : 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+/** Serialized analysis above this size gets its draft truncated rather than
+ *  failing the write outright. Well under longtext, but a real ceiling. */
+const MAX_ANALYSIS_JSON = 60000;
+
+async function persistBlockAnalysis(
+  canvasId: string,
+  blockType: string,
+  stepsPromise: PromiseLike<Awaited<ReturnType<typeof streamTextWithLogging>['steps']>>,
+  content: string,
+): Promise<void> {
+  return Promise.resolve(stepsPromise).then(async (steps) => {
       let analysis: {
         draft: string;
         assumptions: string[];
@@ -105,6 +134,9 @@ export async function POST(_request: Request, context: RouteContext) {
         ? aiRisk / 100
         : Math.min(1, analysis.risks.length * 0.15);
 
+      // Ordered explicitly: the canvas page reads `docsForType[0]` as a
+      // block's main content, so an unordered limit(1) could write the
+      // analysis to a row that is never displayed.
       const existing = await serverTablesDB.listRows({
         databaseId: DATABASE_ID,
         tableId: BLOCKS_TABLE_ID,
@@ -112,22 +144,48 @@ export async function POST(_request: Request, context: RouteContext) {
           Query.equal('canvas', canvasId),
           Query.equal('blockType', blockType),
           Query.select(['$id']),
+          Query.orderAsc('$id'),
           Query.limit(1),
         ],
       });
 
-      const aiAnalysisJson = JSON.stringify({
-        ...analysis,
-        generatedAt: new Date().toISOString(),
-      });
+      let payload = { ...analysis, generatedAt: new Date().toISOString() };
+      let aiAnalysisJson = JSON.stringify(payload);
+      if (aiAnalysisJson.length > MAX_ANALYSIS_JSON) {
+        console.warn(
+          `[analyze-persist] payload ${aiAnalysisJson.length}b exceeds ${MAX_ANALYSIS_JSON}b for blockType=${blockType} — truncating draft`,
+        );
+        payload = { ...payload, draft: payload.draft.slice(0, 4000) };
+        aiAnalysisJson = JSON.stringify(payload);
+      }
 
-      if (existing.rows.length > 0) {
-        await serverTablesDB.updateRow({
-          databaseId: DATABASE_ID,
-          tableId: BLOCKS_TABLE_ID,
-          rowId: existing.rows[0].$id,
-          data: { aiAnalysisJson, confidenceScore, riskScore },
-        });
+      if (existing.rows.length === 0) {
+        console.warn(
+          `[analyze-persist] no block row for canvas=${canvasId} blockType=${blockType} — analysis discarded`,
+        );
+      } else {
+        try {
+          await serverTablesDB.updateRow({
+            databaseId: DATABASE_ID,
+            tableId: BLOCKS_TABLE_ID,
+            rowId: existing.rows[0].$id,
+            data: { aiAnalysisJson, confidenceScore, riskScore },
+          });
+          console.log(
+            `[analyze-persist] saved blockType=${blockType} bytes=${aiAnalysisJson.length} ` +
+              `assumptions=${analysis.assumptions.length} risks=${analysis.risks.length} questions=${analysis.questions.length}`,
+          );
+        } catch (err) {
+          // `type` is the field that identifies this class of failure
+          // (document_invalid_structure = the column is too small); a bare
+          // console.error on an AppwriteException buries it.
+          const e = err as { code?: number; type?: string; message?: string };
+          console.error(
+            `[analyze-persist] updateRow FAILED blockType=${blockType} bytes=${aiAnalysisJson.length} ` +
+              `code=${e?.code} type=${e?.type} message=${e?.message}`,
+          );
+          throw err;
+        }
       }
 
       if (identifiedAssumptions.length > 0) {
@@ -176,15 +234,11 @@ export async function POST(_request: Request, context: RouteContext) {
           }),
         );
       }
-    }).catch((err) => console.error('[analyze-persist] Failed to save analysis:', err));
-
-    return result.toUIMessageStreamResponse();
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error('Block analyze error:', message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: message === 'Unauthorized' ? 401 : message === 'Forbidden' ? 403 : 500,
-      headers: { 'Content-Type': 'application/json' },
+    }).catch((err) => {
+      const e = err as { code?: number; type?: string; message?: string };
+      console.error(
+        `[analyze-persist] Failed to save analysis for blockType=${blockType}: ` +
+          `code=${e?.code} type=${e?.type} message=${e?.message ?? String(err)}`,
+      );
     });
-  }
 }

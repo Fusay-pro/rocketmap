@@ -3,7 +3,7 @@ import { streamTextWithLogging } from '@/lib/ai/logger';
 import { requireAuth } from '@/lib/appwrite-server';
 import { getToolsForAgent, createGenerateCanvasTool } from '@/lib/ai/tools';
 import { ONBOARDING_SYSTEM_PROMPT } from '@/lib/ai/prompts';
-import { recordAiUsage } from '@/lib/ai/user-preferences';
+import { recordAiUsage, getAiApiKeyFromUser } from '@/lib/ai/user-preferences';
 import { getModelForPurpose, getModelIdForPurpose } from '@/lib/ai/models';
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     const modelId = getModelIdForPurpose('fast');
 
     const result = streamTextWithLogging('guided-create', {
-      model: getModelForPurpose('fast'),
+      model: getModelForPurpose('fast', getAiApiKeyFromUser(user)),
       system: shouldForceTool
         ? ONBOARDING_SYSTEM_PROMPT + '\n\nYou have enough information. You MUST call generateCanvas now.'
         : ONBOARDING_SYSTEM_PROMPT,

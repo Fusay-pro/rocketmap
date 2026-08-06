@@ -9,7 +9,7 @@ import {
 } from '@/lib/appwrite';
 import { getCanvasBlocks } from '@/lib/ai/canvas-state';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
-import { recordAiUsage } from '@/lib/ai/user-preferences';
+import { recordAiUsage, getAiApiKeyFromUser } from '@/lib/ai/user-preferences';
 import { getModelForPurpose, getModelIdForPurpose } from '@/lib/ai/models';
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 
@@ -50,7 +50,7 @@ export async function POST(_request: Request, context: RouteContext) {
         send({ type: 'step', step: 'analyzing' });
 
         const { result, usage } = await generateTextWithLogging('assumptions-analyze', {
-          model: getModelForPurpose('reasoning'),
+          model: getModelForPurpose('reasoning', getAiApiKeyFromUser(user)),
           system: systemPrompt,
           prompt: `Analyze this entire business model canvas and extract ALL hidden assumptions the founder is making. Focus on:
 

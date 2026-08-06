@@ -282,6 +282,7 @@ export function SettingsClient({ initialAnthropicKeyStatus }: SettingsClientProp
         <div className="settings-section-title">AI Provider</div>
         <Text size="2" style={{ color: 'var(--foreground-muted)', marginBottom: '0.75rem', display: 'block' }}>
           Add your own DeepSeek-compatible API key to run AI with your account and track usage in the dashboard.
+          Your daily usage limit still applies.
         </Text>
         {anthropicKeyStatus.hasKey && (
           <Text size="2" style={{ color: 'var(--foreground-muted)', marginBottom: '1rem', display: 'block' }}>

@@ -13,7 +13,7 @@ import { getCanvasBlocks } from '@/lib/ai/canvas-state';
 import { getToolsForAgent } from '@/lib/ai/tools';
 import { buildDeepDivePrompt, getDeepDiveToolName } from '@/lib/ai/prompts';
 import type { DeepDiveModule, MarketResearchData, UnitEconomicsData, CanvasData } from '@/lib/types/canvas';
-import { recordAiUsage } from '@/lib/ai/user-preferences';
+import { recordAiUsage, getAiApiKeyFromUser } from '@/lib/ai/user-preferences';
 import { getModelForPurpose, getModelIdForPurpose } from '@/lib/ai/models';
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 import { getUserIdFromCanvas } from '@/lib/utils';
@@ -145,7 +145,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { result, usage } = await generateTextWithLogging(
       `deep-dive:${module}`,
       {
-        model: getModelForPurpose('reasoning'),
+        model: getModelForPurpose('reasoning', getAiApiKeyFromUser(user)),
         system: systemPrompt,
         messages: [{ role: 'user', content: userMessage }],
         tools,

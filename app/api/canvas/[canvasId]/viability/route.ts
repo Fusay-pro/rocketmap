@@ -11,7 +11,7 @@ import {
 } from "@/lib/appwrite";
 import { getCanvasBlocks } from "@/lib/ai/canvas-state";
 import { getViabilityPrompt } from "@/lib/ai/prompts";
-import { recordAiUsage } from "@/lib/ai/user-preferences";
+import { recordAiUsage, getAiApiKeyFromUser } from "@/lib/ai/user-preferences";
 import { getModelForPurpose, getModelIdForPurpose } from "@/lib/ai/models";
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 import { parseAssumptionRow } from "@/lib/utils/assumptions";
@@ -141,7 +141,7 @@ export async function POST(_request: Request, context: RouteContext) {
     }
 
     const { result, usage } = await generateTextWithLogging('viability', {
-      model: getModelForPurpose('fast'),
+      model: getModelForPurpose('fast', getAiApiKeyFromUser(user)),
       temperature: 0.3,
       prompt: getViabilityPrompt(blocks, assumptions),
     }, {

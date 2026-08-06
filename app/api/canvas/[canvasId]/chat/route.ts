@@ -13,7 +13,7 @@ import { getToolsForAgent } from '@/lib/ai/tools';
 import { saveChatMessage } from '@/lib/ai/chat-persistence';
 import type { AssumptionContext } from '@/lib/ai/prompts';
 import type { BlockType } from '@/lib/types/canvas';
-import { recordAiUsage } from '@/lib/ai/user-preferences';
+import { recordAiUsage, getAiApiKeyFromUser } from '@/lib/ai/user-preferences';
 import { getModelForPurpose, getModelIdForPurpose } from '@/lib/ai/models';
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 
@@ -75,7 +75,7 @@ export async function POST(request: Request, context: RouteContext) {
     const modelId = getModelIdForPurpose('reasoning');
 
     const result = streamTextWithLogging('canvas-chat', {
-      model: getModelForPurpose('reasoning'),
+      model: getModelForPurpose('reasoning', getAiApiKeyFromUser(user)),
       system: config.systemPrompt,
       messages: modelMessages,
       tools,

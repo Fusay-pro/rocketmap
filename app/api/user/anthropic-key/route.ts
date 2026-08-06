@@ -4,11 +4,16 @@ import {
   getAiKeyStatusForUser,
   removeAiApiKeyForUser,
   saveAiApiKeyForUser,
+  migrateAiApiKeyIfPlaintext,
 } from "@/lib/ai/user-preferences";
+import { MissingEncryptionSecretError } from "@/lib/ai/key-encryption";
 
 export async function GET() {
   try {
     const user = await requireAuth();
+    // Opportunistic one-shot upgrade for keys saved before encryption existed.
+    // No-op once the stored value is already ciphertext.
+    void migrateAiApiKeyIfPlaintext(user);
     const status = await getAiKeyStatusForUser(user.$id);
     return NextResponse.json(status);
   } catch (error: unknown) {
@@ -36,6 +41,17 @@ export async function PUT(request: Request) {
     const { maskedKey } = await saveAiApiKeyForUser(user.$id, apiKey);
     return NextResponse.json({ hasKey: true, maskedKey });
   } catch (error: unknown) {
+    // A missing encryption secret is a server misconfiguration, not bad input.
+    // Surfaced explicitly so it reads as "the server can't store this safely"
+    // rather than a generic failure that invites retrying the same key.
+    if (error instanceof MissingEncryptionSecretError) {
+      console.error("[ai-key]", error.message);
+      return NextResponse.json(
+        { error: "Server is not configured to store API keys securely. Contact the administrator." },
+        { status: 503 },
+      );
+    }
+
     const message = error instanceof Error ? error.message : String(error);
     const status =
       message === "Unauthorized" ? 401 : message === "Invalid AI API key" ? 400 : 500;

@@ -1,11 +1,6 @@
-import { createOpenAI } from "@ai-sdk/openai";
 import type { Models } from "node-appwrite";
-
-const deepseek = createOpenAI({
-  baseURL: "https://api.deepseek.com/v1",
-  apiKey: process.env.DEEPSEEK_API_KEY ?? "",
-});
 import { serverUsers } from "@/lib/appwrite";
+import { decryptApiKey, encryptApiKey, isEncrypted } from "@/lib/ai/key-encryption";
 import type { AIUsageInfo } from "@/lib/ai/logger";
 
 // New neutral pref keys (provider-agnostic)
@@ -51,7 +46,21 @@ function toNonNegativeInt(value: unknown): number {
   return 0;
 }
 
+/**
+ * The usable key: decrypted if stored encrypted, passed through if it predates
+ * encryption. Returns null when a ciphertext won't authenticate, so a stale
+ * secret degrades to "no BYOK key" (falling back to the shared key) rather than
+ * sending a corrupted credential to the provider.
+ */
 function getRawAiApiKey(prefs: PreferenceMap): string | null {
+  const stored = getStoredAiApiKey(prefs);
+  if (stored === null) return null;
+  const plaintext = decryptApiKey(stored);
+  return plaintext && plaintext.trim().length > 0 ? plaintext.trim() : null;
+}
+
+/** The value exactly as persisted — still encrypted. Used to detect legacy rows. */
+function getStoredAiApiKey(prefs: PreferenceMap): string | null {
   // Prefer new key, fallback to legacy
   const candidate = prefs[PREF_AI_API_KEY] ?? prefs[PREF_ANTHROPIC_API_KEY];
   if (typeof candidate !== "string") {
@@ -140,17 +149,11 @@ export function getAiUsageStatsFromUser(
 /** @deprecated Use {@link getAiUsageStatsFromUser} instead */
 export const getAnthropicUsageStatsFromUser = getAiUsageStatsFromUser;
 
-export function getLanguageModel(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _user: Models.User<Models.Preferences>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _modelId: string,
-) {
-  return deepseek.chat("deepseek-v4-flash");
-}
-
-/** @deprecated use getLanguageModel */
-export const getAnthropicModelForUser = getLanguageModel;
+// `getLanguageModel(user, modelId)` used to live here and ignored both
+// arguments, always returning the shared-key flash model. It made the BYOK
+// feature look wired when it wasn't, and nothing imported it. Model selection
+// now belongs to lib/ai/models.ts — call
+// `getModelForPurpose(purpose, getAiApiKeyFromUser(user))`.
 
 async function getUserPreferences(userId: string): Promise<PreferenceMap> {
   const prefs = await serverUsers.getPrefs({ userId });
@@ -185,12 +188,43 @@ export async function saveAiApiKeyForUser(
   const prefs = await getUserPreferences(userId);
   const nextPrefs: PreferenceMap = {
     ...prefs,
-    [PREF_AI_API_KEY]: cleanedKey,
+    // Throws MissingEncryptionSecretError if AI_KEY_ENCRYPTION_SECRET is unset.
+    // Failing the save is deliberate: silently falling back to plaintext would
+    // reintroduce exactly the problem this is here to prevent, invisibly.
+    [PREF_AI_API_KEY]: encryptApiKey(cleanedKey),
   };
+  // The legacy pref held the same secret in plaintext; drop it rather than
+  // leaving a readable copy behind the encrypted one.
+  delete nextPrefs[PREF_ANTHROPIC_API_KEY];
 
   await serverUsers.updatePrefs({ userId, prefs: nextPrefs });
 
   return { maskedKey: maskAiApiKey(cleanedKey) };
+}
+
+/**
+ * Re-write a plaintext key as ciphertext, once, on next use.
+ *
+ * Without this, keys saved before encryption existed would stay readable
+ * forever — encrypting only new writes would leave the whole existing
+ * population in the clear.
+ */
+export async function migrateAiApiKeyIfPlaintext(
+  user: Models.User<Models.Preferences>,
+): Promise<void> {
+  const prefs = normalizePreferences(user.prefs);
+  const stored = getStoredAiApiKey(prefs);
+  if (stored === null || isEncrypted(stored)) return;
+
+  try {
+    const nextPrefs: PreferenceMap = { ...prefs, [PREF_AI_API_KEY]: encryptApiKey(stored) };
+    delete nextPrefs[PREF_ANTHROPIC_API_KEY];
+    await serverUsers.updatePrefs({ userId: user.$id, prefs: nextPrefs });
+    console.log(`[ai-key] migrated plaintext key to ciphertext for user ${user.$id}`);
+  } catch (error) {
+    // Never fail the caller's request over this.
+    console.error("[ai-key] plaintext migration failed:", error);
+  }
 }
 
 /** @deprecated Use {@link saveAiApiKeyForUser} instead */
