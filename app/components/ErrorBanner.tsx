@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface ErrorBannerProps {
   error: string | null;
@@ -14,14 +14,17 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export function ErrorBanner({ error }: ErrorBannerProps) {
-  const [visible, setVisible] = useState(true);
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    setVisible(true);
-  }, [error, searchParams]);
+  // Remember *which* error was dismissed rather than a bare visible flag reset
+  // by an effect. Same intent — a new error re-shows the banner — but derived
+  // during render instead of via a second render pass. It also fixes a real
+  // edge case: the old effect didn't run when a different error arrived under
+  // an unchanged `searchParams` identity, leaving the new error hidden.
+  const dismissKey = `${error ?? ""}::${searchParams.toString()}`;
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
 
-  if (!error || !visible) {
+  if (!error || dismissedKey === dismissKey) {
     return null;
   }
 
@@ -53,7 +56,7 @@ export function ErrorBanner({ error }: ErrorBannerProps) {
         </p>
         <button
           type="button"
-          onClick={() => setVisible(false)}
+          onClick={() => setDismissedKey(dismissKey)}
           aria-label="Dismiss error"
           className="shrink-0 -mr-1 p-1 rounded-full text-foreground-muted hover:text-foreground transition-colors"
         >

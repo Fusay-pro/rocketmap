@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useIsHydrated } from "@/lib/utils/useIsHydrated";
 
 function SunIcon({ className }: { className?: string }) {
   return (
@@ -69,11 +69,7 @@ type ThemeToggleProps = {
 
 export function ThemeToggle({ variant = "icon", showLabels = true }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsHydrated();
 
   const cycleTheme = () => {
     const order: ThemeValue[] = ["light", "dark", "system"];

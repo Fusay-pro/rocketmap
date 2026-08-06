@@ -48,7 +48,7 @@ Individual building blocks (Value Prop, Customer Segments, etc.)
 - **$id**: String
 - **blockType**: Enum (customer_segments, value_prop, channels, customer_relationships, revenue_streams, key_resources, key_activities, key_partnerships, cost_structure, problem, solution, key_metrics, unfair_advantage) (Required, Indexed)
 - **contentJson**: LongText (BMC/Lean textual content)
-- **aiAnalysisJson**: String(1000)
+- **aiAnalysisJson**: LongText
 - **deepDiveJson**: LongText (Layer 2 research data)
 - **confidenceScore**: Double (0-1)
 - **riskScore**: Double (0-1)

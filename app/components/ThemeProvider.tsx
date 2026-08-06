@@ -3,19 +3,16 @@
 import { Theme } from "@radix-ui/themes";
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import type { ThemeProviderProps } from "next-themes";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode } from "react";
+import { useIsHydrated } from "@/lib/utils/useIsHydrated";
 
 function RadixThemeAppearance({ children }: { children: ReactNode }) {
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const hydrated = useIsHydrated();
 
   // Avoid hydration mismatch: render a stable "light" appearance during SSR
   // and the first client render, then switch to the resolved theme after mount.
-  const appearance = mounted && resolvedTheme === "dark" ? "dark" : "light";
+  const appearance = hydrated && resolvedTheme === "dark" ? "dark" : "light";
 
   return (
     <Theme

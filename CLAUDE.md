@@ -343,7 +343,7 @@ See [docs/plans/2026-02-13-radix-chromatic-theme-design.md](docs/plans/2026-02-1
   - Use `serverTablesDB.listRows()` NOT `serverDatabases.listDocuments()`
   - Response is `result.rows` NOT `result.documents`
   - Parameters are objects: `{ databaseId, tableId, queries }`
-  - `createRow()` does NOT take `rowId` (auto-generated)
+  - `createRow()` **requires** an explicit `rowId` — pass `ID.unique()`. (An earlier note here said it was auto-generated; that is wrong for node-appwrite v22, whose types declare `rowId: string` as required. All 21 `createRow` call sites pass it.)
   - Relationship fields CANNOT be in `Query.select()` (auto-loaded)
 - **⚠️ CRITICAL - Appwrite Relationships & Queries**: When using relationships, queries use the related row's `$id`:
   - `Query.equal('canvas', canvasId)` queries against the canvas row's `$id` value

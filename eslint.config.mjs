@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Throwaway scripts kept at the repo root for manual screenshotting and
+    // one-off debugging. They're plain CommonJS Node scripts, so the app's
+    // TypeScript/ESM rules don't apply and only produce noise.
+    "tmp-*.js",
+    "tmp-*.mjs",
   ]),
 ]);
 
