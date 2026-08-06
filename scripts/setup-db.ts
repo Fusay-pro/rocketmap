@@ -1,6 +1,19 @@
-import { Client, Databases, Permission, Role, IndexType } from 'node-appwrite';
+import { Client, Databases, IndexType } from 'node-appwrite';
 
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
+
+/**
+ * Server-only. Deliberately empty — see scripts/setup-investment-case-db.ts for
+ * the full rationale.
+ *
+ * Short version: these collections are only ever touched by API routes using an
+ * API key, and API keys bypass permissions. The previous `Role.users()` grants
+ * gave every authenticated account in the project read/write on every canvas,
+ * block, and message — enforceable only by the route layer, which the client
+ * SDK can skip entirely. Ownership checks live in the routes; the database must
+ * not offer a way around them.
+ */
+const SERVER_ONLY_PERMISSIONS: string[] = [];
 const USERS_COLLECTION_ID = 'users';
 const CANVASES_COLLECTION_ID = 'canvases';
 const MESSAGES_COLLECTION_ID = 'messages';
@@ -21,11 +34,7 @@ async function setup() {
       databaseId: DATABASE_ID,
       collectionId: USERS_COLLECTION_ID,
       name: 'Users',
-      permissions: [
-        Permission.read(Role.users()),
-        Permission.create(Role.users()),
-        Permission.update(Role.users()),
-      ],
+      permissions: SERVER_ONLY_PERMISSIONS,
     });
     console.log('Created collection: users');
 
@@ -70,12 +79,7 @@ async function setup() {
       databaseId: DATABASE_ID,
       collectionId: CANVASES_COLLECTION_ID,
       name: 'Canvases',
-      permissions: [
-        Permission.read(Role.users()),
-        Permission.create(Role.users()),
-        Permission.update(Role.users()),
-        Permission.delete(Role.users()),
-      ],
+      permissions: SERVER_ONLY_PERMISSIONS,
     });
     console.log('Created collection: canvases');
 
@@ -120,12 +124,7 @@ async function setup() {
       databaseId: DATABASE_ID,
       collectionId: MESSAGES_COLLECTION_ID,
       name: 'Messages',
-      permissions: [
-        Permission.read(Role.users()),
-        Permission.create(Role.users()),
-        Permission.update(Role.users()),
-        Permission.delete(Role.users()),
-      ],
+      permissions: SERVER_ONLY_PERMISSIONS,
     });
     console.log('Created collection: messages');
 
