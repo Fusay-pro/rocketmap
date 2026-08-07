@@ -132,11 +132,38 @@ export async function listQuotesForCase(caseId: string): Promise<CaseQuote[]> {
   return result.rows.map(parseCaseQuoteRow);
 }
 
+/**
+ * Every demand test on a case, oldest first.
+ *
+ * The spec says at most one, but nothing in Appwrite enforces it — a
+ * relationship column can't carry a unique index, and the upsert in
+ * PUT .../demand-test is a read-then-write, so two concurrent saves can both
+ * miss and both create. Callers that need to *detect* that use this; callers
+ * that just need the record use getDemandTestForCase.
+ */
+export async function listDemandTestsForCase(caseId: string): Promise<CaseDemandTest[]> {
+  const result = await serverTablesDB.listRows({
+    databaseId: DATABASE_ID,
+    tableId: CASE_DEMAND_TESTS_TABLE_ID,
+    queries: [Query.equal("case", caseId), Query.orderAsc("$id"), Query.limit(25)],
+  });
+  return result.rows.map(parseCaseDemandTestRow);
+}
+
+/**
+ * The case's demand test, or null.
+ *
+ * Ordered by $id rather than taking whatever limit(1) returns. If duplicates
+ * ever exist, an unordered read could hand back a different row on successive
+ * calls, so the memo, the scenarios and the publish gate could each disagree
+ * about which numbers are real. Oldest-wins is arbitrary but stable, and
+ * publish refuses outright when it sees more than one.
+ */
 export async function getDemandTestForCase(caseId: string): Promise<CaseDemandTest | null> {
   const result = await serverTablesDB.listRows({
     databaseId: DATABASE_ID,
     tableId: CASE_DEMAND_TESTS_TABLE_ID,
-    queries: [Query.equal("case", caseId), Query.limit(1)],
+    queries: [Query.equal("case", caseId), Query.orderAsc("$id"), Query.limit(1)],
   });
   return result.rows.length > 0 ? parseCaseDemandTestRow(result.rows[0]) : null;
 }

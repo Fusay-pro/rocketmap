@@ -77,6 +77,30 @@ export async function findAttachmentSlot(
 }
 
 /**
+ * Whether a referenced blob is actually present AND belongs to this case.
+ *
+ * A reference is only a string in a row; it can outlive the file it names.
+ * Anything that treats "the field is set" as "the evidence exists" — the
+ * publish gate especially — needs this, or a case can be published on an
+ * attachment that 404s the moment anyone opens it.
+ */
+export async function attachmentIsUsable(
+  fileId: string | null | undefined,
+  caseId: string,
+): Promise<boolean> {
+  if (!fileId || !isValidFileId(fileId)) return false;
+  try {
+    const metadata = await serverStorage.getFile({
+      bucketId: CASE_ATTACHMENTS_BUCKET_ID,
+      fileId,
+    });
+    return isOwnedByCase(metadata.name, caseId);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Delete a blob, but only if it was uploaded for this case.
  *
  * Every cleanup path must go through here rather than calling `deleteFile`
