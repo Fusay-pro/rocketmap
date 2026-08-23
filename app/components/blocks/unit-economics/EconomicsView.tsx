@@ -86,7 +86,12 @@ export function EconomicsView({
           console.warn('[economics] no unitEconomics in updatedDeepDive', json.updatedDeepDive);
         }
       } else {
-        console.error('[economics] error response:', json);
+        // Include the status: an error object alone can serialise to `{}` and
+        // then says nothing about what actually went wrong.
+        console.error(
+          `[economics] request failed — HTTP ${res.status} ${res.statusText}:`,
+          json?.error ?? json,
+        );
       }
     } catch (err) {
       console.error('[economics] fetch threw:', err);

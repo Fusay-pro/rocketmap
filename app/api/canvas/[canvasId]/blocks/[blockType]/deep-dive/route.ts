@@ -17,6 +17,7 @@ import { recordAiUsage, getAiApiKeyFromUser } from '@/lib/ai/user-preferences';
 import { getModelForPurpose, getModelIdForPurpose } from '@/lib/ai/models';
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 import { getUserIdFromCanvas } from '@/lib/utils';
+import { toErrorMessage } from '@/lib/errors';
 
 interface RouteContext {
   params: Promise<{ canvasId: string; blockType: string }>;
@@ -354,8 +355,10 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ result: toolResult, updatedDeepDive, usage });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error('Deep-dive error:', message);
+    const message = toErrorMessage(error);
+    // Log the raw error too — the message alone loses the stack and any
+    // provider-specific fields (status, responseBody) on AI SDK errors.
+    console.error('Deep-dive error:', message, error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -403,8 +406,8 @@ export async function PUT(request: Request, context: RouteContext) {
 
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error('Deep-dive PUT error:', message);
+    const message = toErrorMessage(error);
+    console.error('Deep-dive PUT error:', message, error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
