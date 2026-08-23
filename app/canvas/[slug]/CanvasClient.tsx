@@ -105,7 +105,9 @@ export function CanvasClient({
   const [chatTargetBlock, setChatTargetBlock] = useState<BlockType | null>(
     null,
   );
-  const [chatMinimized, setChatMinimized] = useState(false);
+  // Start minimized: opening a canvas should show the canvas, not the copilot.
+  // The minimized state still renders the restore bubble, so chat is one click away.
+  const [chatMinimized, setChatMinimized] = useState(true);
   const [pendingChatMessage, setPendingChatMessage] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
   const [isMobile, setIsMobile] = useState(false);

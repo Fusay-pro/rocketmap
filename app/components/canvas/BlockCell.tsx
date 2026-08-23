@@ -13,6 +13,7 @@ import { getRiskBorderClass } from "@/lib/utils/risk";
 import { BlockTooltip } from "./BlockTooltip";
 import { BlockCard } from "./BlockCard";
 import { SegmentCard } from "./SegmentCard";
+import { BLOCK_ZONE_COLOR } from "./constants";
 
 const BLOCK_ABBREVIATIONS: Record<BlockType, { bmc: string; lean: string }> = {
   key_partnerships: { bmc: "KP", lean: "PROB" },
@@ -321,6 +322,7 @@ export function BlockCell({
     mode === "lean"
       ? BLOCK_ABBREVIATIONS[definition.type].lean
       : BLOCK_ABBREVIATIONS[definition.type].bmc;
+  const zoneColor = BLOCK_ZONE_COLOR[definition.type];
   const useAbbreviation = isCompact;
   const displayLabel = useAbbreviation ? abbreviatedLabel : label;
 
@@ -447,14 +449,24 @@ export function BlockCell({
       {/* Content wrapper with overflow handling */}
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1 flex-shrink-0">
-          <span className="inline-flex items-center gap-1 font-display-small uppercase tracking-wider text-foreground-muted">
-            <span className="w-4 h-4 rounded-md border border-border bg-canvas-surface text-foreground-muted/70 shrink-0 inline-flex items-center justify-center">
+          <span
+            className="inline-flex items-center gap-1.5 font-display-small uppercase tracking-wider text-[12.5px]"
+            style={{ color: `color-mix(in srgb, ${zoneColor} 78%, var(--foreground))` }}
+          >
+            <span
+              className="w-[18px] h-[18px] rounded-md shrink-0 inline-flex items-center justify-center"
+              style={{
+                color: zoneColor,
+                backgroundColor: `color-mix(in srgb, ${zoneColor} 14%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${zoneColor} 28%, transparent)`,
+              }}
+            >
               <BlockTypeIcon type={definition.type} />
             </span>
             <span>{displayLabel}</span>
           </span>
         {showLeanChip && (
-          <span className="text-[8px] font-mono uppercase tracking-wider px-1.5 py-px rounded-full bg-chroma-indigo/10 text-chroma-indigo border border-chroma-indigo/20">
+          <span className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-px rounded-full bg-chroma-indigo/10 text-chroma-indigo border border-chroma-indigo/20">
             Lean
           </span>
         )}
@@ -463,7 +475,7 @@ export function BlockCell({
           (riskMetrics.untestedHighRisk > 0 ||
             riskMetrics.untestedMediumRisk > 0) && (
             <span
-              className="inline-flex items-center gap-0.5 text-[8px] font-mono px-1 py-px rounded-full shrink-0"
+              className="inline-flex items-center gap-0.5 text-[10px] font-mono px-1 py-px rounded-full shrink-0"
               style={{
                 backgroundColor:
                   riskMetrics.riskScore >= 70
@@ -530,7 +542,7 @@ export function BlockCell({
           {onBlockCreate && (
             <button
               onClick={onBlockCreate}
-              className="w-full rounded-md border border-dashed border-border hover:border-foreground/20 px-2 py-1 text-[10px] text-foreground-muted/40 hover:text-foreground-muted/70 hover:bg-foreground/5 transition-colors text-left"
+              className="w-full rounded-md border border-dashed border-border hover:border-foreground/20 px-2 py-1 text-[10px] text-foreground-muted/70 hover:text-foreground-muted/70 hover:bg-foreground/5 transition-colors text-left"
             >
               + Add block
             </button>
@@ -621,7 +633,7 @@ export function BlockCell({
             !readOnly && (
               <button
                 onClick={() => setAddingNew(true)}
-                className="w-full rounded-md border border-dashed border-border hover:border-foreground/20 px-2 py-1.5 text-[10px] text-foreground-muted/40 hover:text-foreground-muted/70 hover:bg-foreground/5 transition-colors text-left"
+                className="w-full rounded-md border border-dashed border-border hover:border-foreground/20 px-2 py-1.5 text-[10px] text-foreground-muted/70 hover:text-foreground-muted/70 hover:bg-foreground/5 transition-colors text-left"
               >
                 + New segment
               </button>
@@ -651,7 +663,7 @@ export function BlockCell({
               </div>
             ))}
             {resolvedLinkedSegments.length > 4 && (
-              <span className="text-[9px] text-foreground-muted/40 px-1.5">
+              <span className="text-[9px] text-foreground-muted/70 px-1.5">
                 +{resolvedLinkedSegments.length - 4} more
               </span>
             )}
@@ -665,7 +677,7 @@ export function BlockCell({
         <BlockTooltip definition={definition} mode={mode}>
           <button
             type="button"
-            className="w-4 h-4 rounded-full flex items-center justify-center text-foreground-muted/40 hover:text-foreground-muted/70 hover:bg-foreground/5 transition-all"
+            className="w-4 h-4 rounded-full flex items-center justify-center text-foreground-muted/70 hover:text-foreground-muted/70 hover:bg-foreground/5 transition-all"
             aria-label={`Help for ${label}`}
           >
             <span className="font-mono text-[9px] font-bold">?</span>

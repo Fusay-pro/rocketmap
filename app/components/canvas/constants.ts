@@ -129,3 +129,24 @@ export function getBlockValue(
       ? content.lean
       : content.bmc;
 }
+
+/**
+ * Zone tint per block. The BMC already groups its nine blocks into four
+ * zones — infrastructure on the left, the value proposition at the hinge,
+ * the customer on the right, money along the bottom — so the colour encodes
+ * that structure rather than just labelling nine boxes differently.
+ *
+ * Kept as a tint, not a fill: state colours (healthy/warning/critical) still
+ * need to outrank zone colour when a block goes fragile.
+ */
+export const BLOCK_ZONE_COLOR: Record<BlockType, string> = {
+  key_partnerships: "var(--chroma-indigo)",
+  key_activities: "var(--chroma-indigo)",
+  key_resources: "var(--chroma-indigo)",
+  value_prop: "var(--chroma-amber)",
+  customer_relationships: "var(--chroma-cyan)",
+  channels: "var(--chroma-cyan)",
+  customer_segments: "var(--chroma-cyan)",
+  cost_structure: "var(--chroma-pink)",
+  revenue_streams: "var(--chroma-pink)",
+};

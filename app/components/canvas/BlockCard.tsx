@@ -155,14 +155,15 @@ export const BlockCard = forwardRef<HTMLDivElement, BlockCardProps>(
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >
-        {/* Delete button — top-right, always visible */}
+        {/* Delete button — revealed on card hover/focus. Kept out of the resting
+            state so ~20 red glyphs aren't the most saturated thing on the canvas. */}
         <button
           onClick={() => {
             if (confirm('Delete this block? This cannot be undone.')) {
               onDelete(block.$id);
             }
           }}
-          className="absolute top-1 right-1 text-[9px] px-1 py-0.5 rounded text-state-critical/60 hover:text-state-critical transition-all cursor-pointer z-10"
+          className="absolute top-1 right-1 text-[11px] px-1 py-0.5 rounded text-state-critical/70 hover:text-state-critical opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 motion-reduce:transition-none transition-opacity duration-150 cursor-pointer z-10"
           title="Delete block"
         >
           ×
@@ -181,10 +182,10 @@ export const BlockCard = forwardRef<HTMLDivElement, BlockCardProps>(
               e.stopPropagation();
             }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="text-[10px] text-foreground/80 text-left w-full transition-colors whitespace-pre-wrap break-words leading-relaxed cursor-text outline-none hover:text-foreground line-clamp-2 group-hover/card:line-clamp-none focus:line-clamp-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-foreground/30"
+            className="text-[13px] text-foreground/90 text-left w-full transition-colors whitespace-pre-wrap break-words leading-relaxed cursor-text outline-none hover:text-foreground line-clamp-3 group-hover/card:line-clamp-none focus:line-clamp-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-foreground/30"
             data-placeholder="Enter block content..."
             spellCheck={false}
-            style={{ minHeight: '18px' }}
+            style={{ minHeight: '20px' }}
           >
             {content.text}
           </div>
@@ -195,7 +196,7 @@ export const BlockCard = forwardRef<HTMLDivElement, BlockCardProps>(
               {content.tags!.map((tag, i) => (
                 <span
                   key={i}
-                  className="text-[8px] font-medium px-1.5 py-0.5 rounded-md bg-chroma-indigo/12 text-chroma-indigo border border-chroma-indigo/15"
+                  className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-chroma-indigo/12 text-chroma-indigo border border-chroma-indigo/15"
                 >
                   {tag}
                 </span>
@@ -212,7 +213,7 @@ export const BlockCard = forwardRef<HTMLDivElement, BlockCardProps>(
                 return (
                   <span
                     key={seg.$id}
-                    className={`inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-full border transition-all duration-150 cursor-default ${
+                    className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border transition-all duration-150 cursor-default ${
                       isHighlighted
                         ? 'border-foreground/30 text-foreground/90 bg-foreground/10'
                         : 'border-border text-foreground-muted/80 bg-canvas-surface'
@@ -241,10 +242,17 @@ export const BlockCard = forwardRef<HTMLDivElement, BlockCardProps>(
             <button
               ref={linkBtnRef}
               onClick={() => setShowLinkPicker(!showLinkPicker)}
-              className={`flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded transition-colors ${
+              className={`flex items-center gap-0.5 text-[10px] px-1 py-0.5 rounded transition motion-reduce:transition-none duration-150 ${
+                // Persistent only when it carries information (a link count) or
+                // while its picker is open. Otherwise it's one hover away — an
+                // unlabelled 9px chain on every item read as noise, not a control.
+                hasSegments || showLinkPicker
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100'
+              } ${
                 showLinkPicker
                   ? 'text-foreground-muted bg-foreground/8'
-                  : 'text-foreground-muted/40 hover:text-foreground-muted hover:bg-foreground/5'
+                  : 'text-foreground-muted/70 hover:text-foreground-muted hover:bg-foreground/5'
               }`}
               title="Link to segments"
             >
@@ -257,7 +265,7 @@ export const BlockCard = forwardRef<HTMLDivElement, BlockCardProps>(
 
             {/* Unassigned hint — surfaced only while a segment lens is active */}
             {focusEmphasis === 'unassigned' && (
-              <span className="text-[8px] font-mono uppercase tracking-wider px-1 py-px rounded border border-dashed border-foreground/25 text-foreground-muted/50">
+              <span className="text-[10px] font-mono uppercase tracking-wider px-1 py-px rounded border border-dashed border-foreground/25 text-foreground-muted/50">
                 unassigned
               </span>
             )}
@@ -265,7 +273,7 @@ export const BlockCard = forwardRef<HTMLDivElement, BlockCardProps>(
             {/* Confidence score — only when meaningful */}
             {block.confidenceScore > 0 && (
               <span
-                className="text-[9px] font-mono ml-auto"
+                className="text-[10px] font-mono ml-auto"
                 style={{ color: confidenceColor }}
               >
                 {block.confidenceScore}
@@ -282,7 +290,7 @@ export const BlockCard = forwardRef<HTMLDivElement, BlockCardProps>(
             className="fixed z-[100] rounded-lg border border-border bg-canvas-surface shadow-[0_20px_25px_-5px_rgba(var(--ink-shadow),0.1),0_8px_10px_-6px_rgba(var(--ink-shadow),0.1)] p-1 space-y-0.5 max-h-[180px] w-[180px] overflow-y-auto"
             style={{ top: floatingPos.top, left: floatingPos.left }}
           >
-            <div className="text-[8px] text-foreground-muted/40 uppercase tracking-wider px-1.5 py-0.5 font-mono">
+            <div className="text-[10px] text-foreground-muted/70 uppercase tracking-wider px-1.5 py-0.5 font-mono">
               Link segments
             </div>
             {allSegments.map(seg => {
@@ -299,7 +307,7 @@ export const BlockCard = forwardRef<HTMLDivElement, BlockCardProps>(
                     className="w-2 h-2 rounded-full shrink-0"
                     style={{ background: seg.colorHex || 'var(--state-calm)' }}
                   />
-                  <span className={`text-[9px] truncate flex-1 ${
+                  <span className={`text-[10px] truncate flex-1 ${
                     isLinked ? 'text-foreground/80' : 'text-foreground-muted/60'
                   }`}>
                     {seg.name}
