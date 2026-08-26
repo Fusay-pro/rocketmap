@@ -15,10 +15,7 @@ import { recordAiUsage, getAiApiKeyFromUser } from "@/lib/ai/user-preferences";
 import { getModelForPurpose, getModelIdForPurpose } from "@/lib/ai/models";
 import { checkAiQuota, createQuotaExceededResponse } from '@/lib/ai/quota';
 import { parseAssumptionRow } from "@/lib/utils/assumptions";
-import {
-  computeWeightedScore,
-  mergeUnlockStepsWithAssumptions,
-} from "@/lib/utils/viability";
+import { mergeUnlockStepsWithAssumptions } from "@/lib/utils/viability";
 import type {
   Assumption,
   BlockData,
@@ -69,7 +66,6 @@ function getBlockViabilityText(block: BlockData): string {
 function buildUnlockSteps(
   rawSteps: Array<{
     assumptionId: string;
-    upliftPoints: number;
     suggestedTest: string;
   }>,
   assumptions: Assumption[],
@@ -86,7 +82,6 @@ function buildUnlockSteps(
         blockTypes: assumption.blockTypes,
         riskLevel: assumption.riskLevel,
         status: assumption.status,
-        upliftPoints: Math.min(30, Math.max(1, Math.round(step.upliftPoints))),
         suggestedTest: step.suggestedTest,
       };
     });
@@ -158,7 +153,6 @@ export async function POST(_request: Request, context: RouteContext) {
     }
 
     const obj = JSON.parse(jsonMatch[0]) as {
-      breakdown: { assumptions: number; market: number; unmetNeed: number };
       reasoning?: string;
       verdict?: string;
       factorsUp?: string[];
@@ -173,37 +167,18 @@ export async function POST(_request: Request, context: RouteContext) {
       }>;
       unlockSteps?: Array<{
         assumptionId: string;
-        upliftPoints: number;
         suggestedTest: string;
       }>;
     };
 
-    const baseScore = computeWeightedScore(obj.breakdown);
     const unlockSteps = buildUnlockSteps(obj.unlockSteps ?? [], assumptions);
     const mergedSteps = mergeUnlockStepsWithAssumptions(unlockSteps, assumptions);
 
-    const validatedUplift = mergedSteps
-      .filter((s) => s.status === "validated")
-      .reduce((sum, s) => sum + (s.upliftPoints ?? 0), 0);
-    const totalUplift = mergedSteps.reduce((sum, s) => sum + (s.upliftPoints ?? 0), 0);
-
-    const currentScore = Math.min(100, baseScore + validatedUplift);
-    let potentialScore = Math.min(
-      100,
-      mergedSteps.length > 0 ? baseScore + totalUplift : currentScore,
-    );
-    potentialScore = Math.max(currentScore, potentialScore);
-
-    if (potentialScore - currentScore > 60) {
-      potentialScore = Math.min(100, currentScore + 60);
-    }
-
     const reasoning = obj.reasoning ?? obj.verdict ?? "";
 
+    // No composite score: the verdict is factors, questions, and unlock steps.
+    // Q/PTP counts and badge state derive from those (evidence-counts.ts).
     const viabilityData: ViabilityData = {
-      score: currentScore,
-      potentialScore,
-      breakdown: obj.breakdown,
       reasoning,
       verdict: obj.verdict ?? reasoning,
       factorsUp: obj.factorsUp ?? [],
@@ -223,7 +198,8 @@ export async function POST(_request: Request, context: RouteContext) {
       tableId: CANVASES_TABLE_ID,
       rowId: canvasId,
       data: {
-        viabilityScore: currentScore,
+        // viabilityScore column intentionally no longer written; kept in the
+        // Appwrite schema so existing rows need no migration.
         viabilityDataJson: JSON.stringify(viabilityData),
         viabilityCalculatedAt: viabilityData.calculatedAt,
       },

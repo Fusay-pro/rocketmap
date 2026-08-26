@@ -188,7 +188,6 @@ export default async function CanvasPage({ params }: PageProps) {
     "slug",
     "description",
     "isPublic",
-    "viabilityScore",
     "viabilityDataJson",
     "viabilityCalculatedAt",
   ];
@@ -405,7 +404,6 @@ export default async function CanvasPage({ params }: PageProps) {
     description: readString(canvas.description),
     isPublic: readBoolean(canvas.isPublic),
     user: getUserIdFromCanvasLike(canvas as Record<string, unknown>),
-    viabilityScore: typeof canvas.viabilityScore === "number" ? canvas.viabilityScore : null,
     viabilityData,
     viabilityCalculatedAt: readString(canvas.viabilityCalculatedAt) || null,
   };

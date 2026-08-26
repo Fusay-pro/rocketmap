@@ -773,25 +773,18 @@ TRACKED ASSUMPTIONS:
 ${assumptionsContext}
 
 EVIDENCE FRAMING:
-Low scores are expected for untested ideas — frame as evidence gaps, not failure.
+Weak evidence is expected for untested ideas — frame as evidence gaps, not failure.
 Also identify UNLOCKABLE POTENTIAL via assumption tests (see unlockSteps below).
-
-SCORING (0-100 each, evidence TODAY only):
-- assumptions: validated assumptions vs untested/refuted (untested = gap, not penalty in verdict tone)
-- market: real addressable market, comparables, competitive landscape
-- unmetNeed: problem pain, differentiation, willingness to pay
 
 UNLOCK PATH:
 - Pick top 4-6 UNTESTED assumptions from tracked list (prioritize high risk)
 - Use exact assumptionId from list above
-- upliftPoints: 8-20 each; total uplift should bridge evidence gap to realistic potential
 - suggestedTest: cheapest/fastest validation
 
 TONE: Direct and honest. Not harsh, not encouraging.
 
 RETURN ONLY JSON — no markdown:
 {
-  "breakdown": { "assumptions": 15, "market": 25, "unmetNeed": 22 },
   "verdict": "2-3 sentences. Core strength, biggest structural risk, what determines outcome.",
   "factorsUp": ["Strength grounded in world knowledge", "Another strength"],
   "factorsDown": ["Risk grounded in market reality", "Another risk"],
@@ -802,13 +795,12 @@ RETURN ONLY JSON — no markdown:
     { "blockType": "customer_segments", "assumption": "...", "status": "untested", "evidence": "..." }
   ],
   "unlockSteps": [
-    { "assumptionId": "exact_id_from_list", "upliftPoints": 18, "suggestedTest": "5 customer interviews" }
+    { "assumptionId": "exact_id_from_list", "suggestedTest": "5 customer interviews" }
   ]
 }
 
 Rules:
 - factorsUp/factorsDown: 2-4 items each, grounded in world knowledge
 - whatAbout: one question only, surfaces core tension
-- breakdown scores = evidence today; do NOT inflate for untested assumptions
-- WEIGHTING for score: assumptions 40%, market 30%, unmetNeed 30%`;
+- Describe evidence as it stands today; do NOT inflate for untested assumptions`;
 }
