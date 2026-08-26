@@ -26,7 +26,12 @@ const DECISION_OPTIONS: { value: DecisionSignal; label: string; color: string }[
 ];
 
 function defaultDecisionForResult(result: ExperimentResult): DecisionSignal {
-  if (result === "supports") return "double_down";
+  // A supporting result defaults to "More Evidence", not "Double Down". One
+  // experiment that agrees with an assumption is not a mandate to commit — the
+  // stronger call should be something the user chooses, not something the
+  // form pre-selects for them. Kept in sync with defaultDecisionSignal in
+  // api/canvas/[canvasId]/assumptions/[assumptionId]/experiments/[id]/route.ts.
+  if (result === "supports") return "insufficient_evidence";
   if (result === "contradicts") return "pivot";
   return "insufficient_evidence";
 }

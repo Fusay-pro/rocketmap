@@ -21,7 +21,11 @@ const DECISION_SIGNALS = new Set([
 ]);
 
 function defaultDecisionSignal(result: ExperimentResult): DecisionSignal {
-  if (result === 'supports') return 'double_down';
+  // A supporting result defaults to "more evidence", not "double down". This
+  // fallback fires whenever the client omits decisionSignal, so leaving it as
+  // double_down would reinstate the bias the UI no longer has. Kept in sync
+  // with defaultDecisionForResult in components/canvas/EvidenceCollectionModal.tsx.
+  if (result === 'supports') return 'insufficient_evidence';
   if (result === 'contradicts') return 'pivot';
   return 'insufficient_evidence';
 }

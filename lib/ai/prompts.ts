@@ -749,7 +749,9 @@ export function getViabilityPrompt(
           .join("\n")
       : "No assumptions extracted yet — infer critical untested assumptions from block content.";
 
-  return `You are a startup analyst giving an honest verdict on a business idea. Think like an experienced operator or investor — not a cheerleader.
+  return `You are a startup analyst giving an honest verdict on a business idea. Think like an experienced operator, customer, and capital allocator — not a cheerleader.
+
+Judge the business against the goal its owner is actually pursuing. A durable, profitable small business is a legitimate outcome, not a failed venture-scale one — do not mark a model down for lacking hypergrowth potential unless the canvas itself claims that ambition.
 
 STEP 1 — IDENTIFY THE BUSINESS:
 Read the canvas and state the core business in one sentence internally. What market? What model?
