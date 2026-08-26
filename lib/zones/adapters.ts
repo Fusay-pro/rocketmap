@@ -82,7 +82,7 @@ function marketMetrics(data: MarketResearchData | null): MetricDefinition[] {
     metrics.push({
       id: 'tam',
       name: 'TAM',
-      targetThreshold: 'Large enough to support the venture-scale ambition stated in Revenue Streams',
+      targetThreshold: 'Large enough to support the revenue ambition stated in Revenue Streams',
       currentValue: currency(estimates.tam.value),
       source: 'Market Research TAM/SAM/SOM',
     });

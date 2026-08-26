@@ -415,9 +415,9 @@ Use the analyzeCompetitors tool to return your structured analysis.`,
 3. **User/buyer alignment** (weight 0.25) — Is the user the buyer? Or are there gatekeepers/procurement hurdles?
 
 ### Market (~40% weight)
-4. **Market size** (weight 0.35) — Is the addressable market large enough to build a venture-scale business?
+4. **Market size** (weight 0.35) — Is the addressable market large enough to support the revenue ambition stated in the canvas?
 5. **Competitive landscape** (weight 0.35) — How crowded is the space? Are incumbents vulnerable or entrenched?
-6. **Investor attractiveness** (weight 0.30) — Would this segment choice excite investors? Is the narrative compelling?
+6. **Segment economics** (weight 0.30) — Can this segment sustainably fund the business? Consider achievable ARPU relative to cost-to-serve, and room to grow revenue within the segment.
 
 ### Execution (~30% weight)
 7. **Ease of sale** (weight 0.30) — How long is the sales cycle? How complex is the buying process?
