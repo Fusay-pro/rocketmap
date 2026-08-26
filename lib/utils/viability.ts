@@ -1,15 +1,8 @@
 import type {
   Assumption,
-  AssumptionStatus,
   ViabilityData,
   ViabilityUnlockStep,
 } from "@/lib/types/canvas";
-
-const VALIDATED_STATUSES: AssumptionStatus[] = ["validated"];
-
-function isValidatedStatus(status: AssumptionStatus): boolean {
-  return VALIDATED_STATUSES.includes(status);
-}
 
 /** Normalize legacy viability payloads missing potential/unlock fields. */
 export function normalizeViabilityData(
@@ -66,36 +59,6 @@ export function mergeUnlockStepsWithAssumptions(
   });
 }
 
-/** Recompute current score from breakdown base + validated unlock uplifts. */
-export function computeLiveScore(
-  data: ViabilityData,
-  assumptions: Assumption[] = [],
-): ViabilityData {
-  const steps = mergeUnlockStepsWithAssumptions(data.unlockSteps, assumptions);
-  const baseScore = computeWeightedScore(
-    data.breakdown ?? { assumptions: 0, market: 0, unmetNeed: 0 },
-  );
-
-  const validatedUplift = steps
-    .filter((s) => isValidatedStatus(s.status))
-    .reduce((sum, s) => sum + (s.upliftPoints ?? 0), 0);
-
-  const totalUplift = steps.reduce((sum, s) => sum + (s.upliftPoints ?? 0), 0);
-
-  const currentScore = Math.min(100, baseScore + validatedUplift);
-  const potentialScore = Math.min(
-    100,
-    steps.length > 0 ? baseScore + totalUplift : (data.potentialScore ?? baseScore),
-  );
-
-  return {
-    ...data,
-    score: currentScore,
-    potentialScore: Math.max(currentScore, potentialScore),
-    unlockSteps: steps,
-  };
-}
-
 export function hasInvalidatedCriticalAssumptions(
   steps: ViabilityUnlockStep[] | null | undefined,
 ): boolean {
@@ -123,13 +86,4 @@ export function getBadgeState(
   if (problems >= 3) return "warning";
   if (problems === 0 && (data?.factorsUp?.length ?? 0) > 0) return "healthy";
   return "calm";
-}
-
-export function computeWeightedScore(breakdown: {
-  assumptions: number;
-  market: number;
-  unmetNeed: number;
-}): number {
-  const { assumptions, market, unmetNeed } = breakdown;
-  return Math.round(assumptions * 0.4 + market * 0.3 + unmetNeed * 0.3);
 }

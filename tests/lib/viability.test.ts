@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getBadgeState,
   hasInvalidatedCriticalAssumptions,
-  computeWeightedScore,
+  mergeUnlockStepsWithAssumptions,
   normalizeViabilityData,
 } from "@/lib/utils/viability";
 import { severityColor, severityColorFromCount } from "@/lib/utils/qptp";
@@ -104,10 +104,30 @@ describe("severityColorFromCount", () => {
   });
 });
 
-describe("computeWeightedScore", () => {
-  it("applies the 0.4 / 0.3 / 0.3 weighting", () => {
-    expect(computeWeightedScore({ assumptions: 100, market: 100, unmetNeed: 100 })).toBe(100);
-    expect(computeWeightedScore({ assumptions: 50, market: 0, unmetNeed: 0 })).toBe(20);
+describe("mergeUnlockStepsWithAssumptions", () => {
+  it("overlays live assumption status onto stored steps", () => {
+    const merged = mergeUnlockStepsWithAssumptions(
+      [step({ assumptionId: "a1", status: "untested" })],
+      [
+        {
+          $id: "a1",
+          statement: "Customers will pay",
+          blockTypes: [],
+          riskLevel: "high",
+          status: "validated",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+      ],
+    );
+    expect(merged[0].status).toBe("validated");
+  });
+
+  it("leaves steps untouched when the assumption is not in the live list", () => {
+    const merged = mergeUnlockStepsWithAssumptions(
+      [step({ assumptionId: "missing", status: "untested" })],
+      [],
+    );
+    expect(merged[0].status).toBe("untested");
   });
 });
 
