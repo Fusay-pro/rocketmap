@@ -317,6 +317,13 @@ See **[lib/ai/PROMPT_TEMPLATES.md](lib/ai/PROMPT_TEMPLATES.md)** for:
 - **Consistency Checker** (Cross-block reasoning prompts)
 - **Market Research Deep-Dive** (TAM/SAM/SOM, personas, competitive analysis)
 
+See **[docs/PROMPT_EVALUATION.md](docs/PROMPT_EVALUATION.md)** before editing any prompt, for:
+
+- **Measured vs argued** (which past changes have evidence behind them — most do not)
+- **Eval design rules** (judge with a different provider; prefer deterministic checks; calibrate thresholds)
+- **Why not to fine-tune** (training on current output would bake in the bias just removed)
+- **Open risks** (removing the 0-100 breakdown request may have made verdict prose vaguer — untested)
+
 ### Quick Validation
 
 Use **[docs/VALIDATION_CHECKLIST.md](docs/VALIDATION_CHECKLIST.md)** for:
@@ -343,7 +350,7 @@ See [docs/plans/2026-02-13-radix-chromatic-theme-design.md](docs/plans/2026-02-1
   - Use `serverTablesDB.listRows()` NOT `serverDatabases.listDocuments()`
   - Response is `result.rows` NOT `result.documents`
   - Parameters are objects: `{ databaseId, tableId, queries }`
-  - `createRow()` **requires** an explicit `rowId` — pass `ID.unique()`. (An earlier note here said it was auto-generated; that is wrong for node-appwrite v22, whose types declare `rowId: string` as required. All 21 `createRow` call sites pass it.)
+  - `createRow()` **requires** an explicit `rowId` — pass `ID.unique()`. (An earlier note here said it was auto-generated; that is wrong for node-appwrite v22, whose types declare `rowId: string` as required. All 22 `createRow` call sites pass it — 20 via `ID.unique()`, 2 via `user.$id`.)
   - Relationship fields CANNOT be in `Query.select()` (auto-loaded)
 - **⚠️ CRITICAL - Appwrite Relationships & Queries**: When using relationships, queries use the related row's `$id`:
   - `Query.equal('canvas', canvasId)` queries against the canvas row's `$id` value

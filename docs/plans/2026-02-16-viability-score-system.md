@@ -1,6 +1,21 @@
 # Viability Score System Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> ## ⚠️ SUPERSEDED — do not execute this plan
+>
+> This plan builds a 0-100 viability score that **has since been removed**. Executing it
+> would rebuild what `74fd136`, `21a5a04` and `9a53b61` deliberately deleted, including the
+> `viabilityScore` column write (Step 2, ~line 1055) and the score-coloured badge.
+>
+> Current behaviour: the canvas shows **Q/PTP counts** (open questions · problems) derived
+> purely from `factorsDown`, `whatAbout` and open unlock steps — see
+> `deriveQptpFromViability` in `lib/utils/evidence-counts.ts`. No composite score is
+> computed, persisted, or rendered.
+>
+> Before changing any prompt, read [docs/PROMPT_EVALUATION.md](../PROMPT_EVALUATION.md).
+>
+> **Kept for history**, not for execution.
+
+> **For Claude:** ~~REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.~~ (superseded — see banner above)
 
 **Goal:** Add multi-factor viability scoring with Claude Opus 4.6 to canvas tabs area
 

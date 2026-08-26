@@ -1,7 +1,26 @@
 # Viability Score System Design
 
+> ## ⚠️ SUPERSEDED — do not implement from this document
+>
+> The 0-100 composite score this document specifies **no longer exists**. Building from
+> here would rebuild a system that was deliberately removed.
+>
+> | This doc describes | Actual current behaviour |
+> |---|---|
+> | Multi-factor 0-100 score, 40/30/30 weighting | **Deleted** (`9a53b61`). No composite score is computed anywhere |
+> | Score badge with `getScoreColor` thresholds | **Replaced** by Q/PTP question/problem counts (`74fd136`) |
+> | `viabilityScore` column written on every calc | **No longer written** (`21a5a04`). Column remains in the Appwrite schema, stale and unread |
+> | Model returns `breakdown: {assumptions, market, unmetNeed}` | Prompt no longer requests it; `upliftPoints` also removed |
+>
+> Current source of truth: `lib/utils/evidence-counts.ts` (`deriveQptpFromViability`) and
+> `lib/utils/viability.ts`. Before changing any prompt, read
+> [docs/PROMPT_EVALUATION.md](../PROMPT_EVALUATION.md).
+>
+> **Kept for history** — it records why the scoring system was built and what it was meant
+> to do, which is context the replacement does not carry.
+
 **Date:** 2026-02-16
-**Status:** Approved
+**Status:** Superseded 2026-08-26 (was: Approved)
 **Feature:** Multi-factor viability scoring with Claude Opus 4.6
 
 ---
