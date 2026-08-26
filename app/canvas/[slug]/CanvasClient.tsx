@@ -28,7 +28,7 @@ import type {
   Assumption,
 } from "@/lib/types/canvas";
 import { getSegmentColor } from "@/lib/types/canvas";
-import { computeLiveScore } from "@/lib/utils/viability";
+import { mergeUnlockStepsWithAssumptions } from "@/lib/utils/viability";
 import { deriveCategoryCounts, deriveQptpFromViability, type CategoryCount } from "@/lib/utils/evidence-counts";
 import type { HoveredItem } from "@/app/components/canvas/ConnectionOverlay";
 import type { ConsistencyData } from "@/app/components/canvas/ConsistencyReport";
@@ -312,7 +312,16 @@ export function CanvasClient({
 
         setViabilityData((prev) => {
           if (!prev) return prev;
-          return computeLiveScore(prev, assumptions);
+          // Overlay live assumption statuses onto stored unlock steps. Badge
+          // state, Q/PTP counts, and step rendering all read unlockSteps —
+          // no score recompute needed (nothing renders one since 74fd136).
+          return {
+            ...prev,
+            unlockSteps: mergeUnlockStepsWithAssumptions(
+              prev.unlockSteps,
+              assumptions,
+            ),
+          };
         });
         if (markOutdated) setViabilityOutdated(true);
       } catch (err) {
