@@ -537,14 +537,18 @@ export interface ViabilityUnlockStep {
   blockTypes: BlockType[];
   riskLevel: AssumptionRiskLevel;
   status: AssumptionStatus;
-  upliftPoints: number;
+  /** Legacy: 0-100 scoring is no longer produced; kept optional so old payloads round-trip. */
+  upliftPoints?: number;
   suggestedTest: string;
 }
 
 export interface ViabilityData {
-  score: number;              // current evidence (today)
-  potentialScore: number;     // score if remaining unlock steps validate
-  breakdown: ViabilityBreakdown;
+  /** Legacy 0-100 composite; no longer produced or rendered. Optional for old payloads. */
+  score?: number;
+  /** Legacy; see score. */
+  potentialScore?: number;
+  /** Legacy; see score. */
+  breakdown?: ViabilityBreakdown;
   reasoning: string;          // legacy detail; prefer verdict when present
   verdict: string;            // 2-3 sentence honest assessment
   factorsUp: string[];        // strengths grounded in world knowledge

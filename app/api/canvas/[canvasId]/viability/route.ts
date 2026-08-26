@@ -184,8 +184,8 @@ export async function POST(_request: Request, context: RouteContext) {
 
     const validatedUplift = mergedSteps
       .filter((s) => s.status === "validated")
-      .reduce((sum, s) => sum + s.upliftPoints, 0);
-    const totalUplift = mergedSteps.reduce((sum, s) => sum + s.upliftPoints, 0);
+      .reduce((sum, s) => sum + (s.upliftPoints ?? 0), 0);
+    const totalUplift = mergedSteps.reduce((sum, s) => sum + (s.upliftPoints ?? 0), 0);
 
     const currentScore = Math.min(100, baseScore + validatedUplift);
     let potentialScore = Math.min(

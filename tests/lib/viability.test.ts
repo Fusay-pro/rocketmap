@@ -3,6 +3,7 @@ import {
   getBadgeState,
   hasInvalidatedCriticalAssumptions,
   computeWeightedScore,
+  normalizeViabilityData,
 } from "@/lib/utils/viability";
 import { severityColor, severityColorFromCount } from "@/lib/utils/qptp";
 import type { ViabilityData, ViabilityUnlockStep } from "@/lib/types/canvas";
@@ -107,5 +108,43 @@ describe("computeWeightedScore", () => {
   it("applies the 0.4 / 0.3 / 0.3 weighting", () => {
     expect(computeWeightedScore({ assumptions: 100, market: 100, unmetNeed: 100 })).toBe(100);
     expect(computeWeightedScore({ assumptions: 50, market: 0, unmetNeed: 0 })).toBe(20);
+  });
+});
+
+describe("normalizeViabilityData", () => {
+  it("accepts a new-format payload with verdict and factors but no score", () => {
+    const result = normalizeViabilityData({
+      verdict: "Real demand signal, unproven pricing.",
+      factorsDown: ["No willingness-to-pay evidence"],
+      unlockSteps: [step()],
+    });
+    expect(result).not.toBeNull();
+    expect(result?.verdict).toBe("Real demand signal, unproven pricing.");
+    expect(result?.score).toBeUndefined();
+  });
+
+  it("still accepts a legacy payload gated on score alone", () => {
+    // Old payloads always carried a 0-100 score; some carried nothing else.
+    const result = normalizeViabilityData({ score: 42 });
+    expect(result).not.toBeNull();
+    expect(result?.score).toBe(42);
+  });
+
+  it("returns null for empty, null, and content-free payloads", () => {
+    expect(normalizeViabilityData(null)).toBeNull();
+    expect(normalizeViabilityData(undefined)).toBeNull();
+    expect(normalizeViabilityData({})).toBeNull();
+    expect(
+      normalizeViabilityData({ verdict: "", factorsUp: [], factorsDown: [], unlockSteps: [] }),
+    ).toBeNull();
+  });
+
+  it("normalizes unlock steps without upliftPoints and produces no NaN", () => {
+    const result = normalizeViabilityData({
+      verdict: "ok",
+      unlockSteps: [step({ upliftPoints: undefined })],
+    });
+    expect(result?.unlockSteps).toHaveLength(1);
+    expect(Number.isNaN(result?.potentialScore ?? 0)).toBe(false);
   });
 });

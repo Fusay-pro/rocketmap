@@ -15,24 +15,25 @@ function isValidatedStatus(status: AssumptionStatus): boolean {
 export function normalizeViabilityData(
   raw: Partial<ViabilityData> | null | undefined,
 ): ViabilityData | null {
-  if (!raw || typeof raw.score !== "number") return null;
+  if (!raw) return null;
 
   const unlockSteps = raw.unlockSteps ?? [];
-  const potentialScore =
-    typeof raw.potentialScore === "number"
-      ? raw.potentialScore
-      : Math.min(
-          100,
-          raw.score +
-            unlockSteps
-              .filter((s) => !isValidatedStatus(s.status))
-              .reduce((sum, s) => sum + (s.upliftPoints ?? 0), 0),
-        );
+
+  // Gate on content, not on the legacy score. Old payloads always carried a
+  // 0-100 score; new ones carry verdict/factors/unlockSteps and no score.
+  // Mirrors deriveQptpFromViability's "emptiness, not presence" philosophy.
+  const hasContent =
+    typeof raw.score === "number" ||
+    (typeof raw.verdict === "string" && raw.verdict.length > 0) ||
+    (raw.factorsUp?.length ?? 0) > 0 ||
+    (raw.factorsDown?.length ?? 0) > 0 ||
+    unlockSteps.length > 0;
+  if (!hasContent) return null;
 
   return {
     score: raw.score,
-    potentialScore: Math.max(raw.score, potentialScore),
-    breakdown: raw.breakdown ?? { assumptions: 0, market: 0, unmetNeed: 0 },
+    potentialScore: raw.potentialScore,
+    breakdown: raw.breakdown,
     reasoning: raw.reasoning ?? "",
     verdict: raw.verdict ?? raw.reasoning ?? "",
     factorsUp: raw.factorsUp ?? [],
@@ -71,18 +72,20 @@ export function computeLiveScore(
   assumptions: Assumption[] = [],
 ): ViabilityData {
   const steps = mergeUnlockStepsWithAssumptions(data.unlockSteps, assumptions);
-  const baseScore = computeWeightedScore(data.breakdown);
+  const baseScore = computeWeightedScore(
+    data.breakdown ?? { assumptions: 0, market: 0, unmetNeed: 0 },
+  );
 
   const validatedUplift = steps
     .filter((s) => isValidatedStatus(s.status))
-    .reduce((sum, s) => sum + s.upliftPoints, 0);
+    .reduce((sum, s) => sum + (s.upliftPoints ?? 0), 0);
 
-  const totalUplift = steps.reduce((sum, s) => sum + s.upliftPoints, 0);
+  const totalUplift = steps.reduce((sum, s) => sum + (s.upliftPoints ?? 0), 0);
 
   const currentScore = Math.min(100, baseScore + validatedUplift);
   const potentialScore = Math.min(
     100,
-    steps.length > 0 ? baseScore + totalUplift : data.potentialScore,
+    steps.length > 0 ? baseScore + totalUplift : (data.potentialScore ?? baseScore),
   );
 
   return {
